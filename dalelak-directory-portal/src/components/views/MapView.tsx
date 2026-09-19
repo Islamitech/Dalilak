@@ -82,12 +82,12 @@ export const MapView: React.FC<MapViewProps> = ({
     if (b !== activeBuildingNumber) setActiveBuildingNumber(b);
   }, []);
 
-  // 2. Compute Target Building / Zone
+  // 2. Compute Target Building / Zone (Only if an explicit building number is requested)
   const targetBuilding = useMemo(() => {
-    if (!activeZoneLetter) return null;
+    if (!activeZoneLetter || !activeBuildingNumber) return null;
     const zone = getHadayekZone(activeZoneLetter);
     if (!zone) return null;
-    const coords = estimateBuildingCoordinates(zone.letterAr, activeBuildingNumber || '1');
+    const coords = estimateBuildingCoordinates(zone.letterAr, activeBuildingNumber);
     return {
       zone,
       zoneLetter: zone.letterAr,

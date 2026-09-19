@@ -86,7 +86,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   } | null>(() => {
     if (initialAtlasTarget) return initialAtlasTarget;
     // Default initial target: Zone L (heart of Hadayek)
-    const defaultZone = HADAYEK_ZONES.find((z) => z.letterAr === '?') || HADAYEK_ZONES[0];
+    const defaultZone = HADAYEK_ZONES.find((z) => z.letterAr === 'ل') || HADAYEK_ZONES[0];
     return {
       zone: defaultZone,
       buildingNumber: '',
@@ -99,7 +99,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   // 3. Gates Guide Modal State
   const [isGatesModalOpen, setIsGatesModalOpen] = useState<boolean>(false);
 
-  // ?? Curated Featured businesses (verified, shuffled dynamically on each page load)
+  // Curated Featured businesses (verified, shuffled dynamically on each page load)
   const featuredBusinesses = React.useMemo(() => {
     const verified = businesses.filter((b) => b.verificationStatus === 'verified');
     const withMedia = verified.filter((b) => (b.photos && b.photos.length > 0) || b.coverPhoto);
@@ -132,15 +132,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-black shadow-xs">
               <Compass className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>???? ????? ??????? ???????? ?????</span>
+              <span>أطلس حدائق الأهرام التفاعلي الذكي</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black text-[var(--text-primary)] tracking-tight leading-tight">
-              ????? ????? ??? ????? ????? ?????? ?? ????? ???????
+              دليلك الذكي لكل عمارة ونشاط وخدمة في حدائق الأهرام
             </h1>
 
             <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-medium leading-relaxed max-w-2xl mx-auto">
-              ??? ??? ?? ????? ?? ????? (?) ??? (?) ????? ????? ??????? ?????? ??????? ???????? ?????????? ???????? ??????? ??? ????????.
+              حدد أي رقم عمارة من منطقة (أ) إلى (ن) واعرف أقرب بوابة والأنشطة المحيطة والاتجاهات المباشرة فوراً.
             </p>
 
             {/* Mode Switcher Pills: Atlas vs Traditional Search */}
@@ -155,7 +155,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 }`}
               >
                 <Compass className="w-3.5 h-3.5" />
-                <span>???? ???????? ?????????</span>
+                <span>أطلس العمارات والملاحة</span>
               </button>
 
               <button
@@ -168,7 +168,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 }`}
               >
                 <Search className="w-3.5 h-3.5" />
-                <span>????? ??????? ?????? / ?????</span>
+                <span>البحث المباشر (اسم / نشاط)</span>
               </button>
             </div>
           </div>
@@ -199,7 +199,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             )}
           </div>
 
-          {/* ? Hadayek Daily & Emergency Lifelines Bar */}
+          {/* Hadayek Daily & Emergency Lifelines Bar */}
           <div className="max-w-4xl mx-auto">
             <HadayekLifelineBar
               onSelectCategory={handleLifelineCategorySelect}
@@ -207,7 +207,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             />
           </div>
 
-          {/* ?? Proximity Radar Drawer: Automatically shown when target is chosen */}
+          {/* Proximity Radar Drawer: Automatically shown when target is chosen */}
           {activeTarget && (
             <div className="max-w-4xl mx-auto space-y-3">
               <ProximityRadarDrawer
@@ -229,7 +229,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 >
                   <Navigation className="w-4 h-4" />
                   <span>
-                    ??? {activeTarget.buildingNumber ? `????? ${activeTarget.buildingNumber} ` : ''}({activeTarget.zone.nameAr}) ??? ??????? ????????? ??????? ???
+                    فتح {activeTarget.buildingNumber ? `عمارة ${activeTarget.buildingNumber} ` : ''}({activeTarget.zone.nameAr}) على الخريطة التفاعلية الكاملة الآن
                   </span>
                 </button>
               </div>
@@ -245,11 +245,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <h2 className="text-lg sm:text-xl font-black text-[var(--text-primary)]">
-                ????? ?????? ????? ??????
+                أنشطة مميزة وموثقة بالحدائق
               </h2>
             </div>
             <p className="text-xs text-[var(--text-secondary)]">
-              ????? ????? ???????? ?????? ????? ????? ???????? ??????
+              أماكن تم التحقق من بياناتها ومواقعها بواسطة فريق دليلك الميداني
             </p>
           </div>
 
@@ -258,7 +258,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             onClick={() => onNavigate('/search')}
             className="text-xs font-black text-amber-700 dark:text-amber-400 hover:text-amber-800 flex items-center gap-1.5 transition-colors cursor-pointer group"
           >
-            <span>??? ?? ??????? ({businesses.length})</span>
+            <span>عرض كل الأنشطة ({businesses.length})</span>
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
           </button>
         </div>
@@ -282,7 +282,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           ) : featuredBusinesses.length === 0 ? (
             <div className="col-span-full py-12 text-center text-[var(--text-secondary)]">
               <Store className="w-10 h-10 mx-auto text-slate-400 mb-2" />
-              <p className="font-bold text-sm">?? ???? ????? ????? ????? ??????.</p>
+              <p className="font-bold text-sm">لم يتم العثور على أنشطة مطابقة حالياً.</p>
             </div>
           ) : (
             featuredBusinesses.map((biz) => (
@@ -305,13 +305,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-amber-900 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
           <div className="space-y-2 text-center md:text-right max-w-xl">
             <span className="text-amber-200 text-xs font-black bg-white/15 px-3 py-1 rounded-full inline-block">
-              ???? ??????? ???????? ?????
+              خريطة حدائق الأهرام المباشرة
             </span>
             <h3 className="text-xl sm:text-2xl font-black">
-              ?????? ????? ??????? ???????? ????????? ??????
+              استكشف حدائق الأهرام بالخريطة التفاعلية الحية
             </h3>
             <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed font-medium">
-              ???? ?? ?????? ??? ????????? ????? ??? ????????? ???????????? ????????? ????????? ???? ?? ????.
+              تجوّل بين المناطق، حدد البوابات، وشاهد أماكن الصيدليات والسوبرماركت والخدمات بنقرة زر واحدة.
             </p>
           </div>
 
@@ -321,7 +321,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             className="bg-white text-slate-950 hover:bg-amber-100 font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-lg transition-all cursor-pointer flex items-center gap-2 shrink-0 active:scale-95"
           >
             <Compass className="w-4 h-4 text-amber-700" />
-            <span>???? ???? ??????? ?????????</span>
+            <span>افتح ماب حدائق الأهرام</span>
           </button>
         </div>
       </section>
@@ -332,13 +332,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="space-y-2 text-center md:text-right max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>????? 100% ?????? ??????? ????????</span>
+              <span>مجاناً 100% لأصحاب الأنشطة والخدمات</span>
             </div>
             <h3 className="text-base sm:text-lg font-black text-[var(--text-primary)]">
-              ?? ???? ????? ?? ????? ?? ?????? ?? ????? ???????? ???? ??????
+              هل تدير محلاً أو عيادة أو نشاطاً في حدائق الأهرام؟ سجله الآن
             </h3>
             <p className="text-xs text-[var(--text-secondary)] font-medium">
-              ???? ?????? ??????? ?????? ?????? ?? ???? ??????? ?????????. ???? ????? ??????? ???? ??????? ????.
+              أضف نشاطك ووصل لآلاف السكان والعملاء يومياً عبر تطبيق وخريطة دليلك. توثيق سريع وفوري مجاناً.
             </p>
           </div>
 
@@ -348,7 +348,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-5 py-3 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 shadow-xs"
           >
             <Store className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-            <span>???? ????? ????? (0 ?)</span>
+            <span>إضافة نشاط مجاناً (0 ج)</span>
           </button>
         </div>
       </section>

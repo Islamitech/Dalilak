@@ -1,3 +1,4 @@
+import { getDistrictByLetter, HADAYEK_OFFICIAL_DISTRICTS } from './hadayekDistrictsGeoData';
 /**
  * 🗺️ Hadayek Atlas & Proximity Navigator Data Engine
  * 
@@ -55,52 +56,52 @@ export const HADAYEK_GATES: HadayekGate[] = [
     nameAr: 'البوابة الأولى',
     nameEn: 'Gate 1 (Khufu)',
     popularNameAr: 'بوابة خوفو',
-    lat: 29.9882,
-    lng: 31.1215,
-    descriptionAr: 'المدخل الشمالي الرئيسي للحدائق من طريق مصر الفيوم / ميدان الرماية والمتحف المصري الكبير.',
+    lat: 29.9740,
+    lng: 31.1140,
+    descriptionAr: 'المدخل الشمالي الرئيسي للحدائق من طريق القاهرة - الفيوم الصحراوي / مدخل شارع الجيش.',
     servedZones: ['أ', 'ب', 'ج', 'د'],
-    accessRoadAr: 'طريق مصر الفيوم / الرماية',
+    accessRoadAr: 'طريق القاهرة - الفيوم الصحراوي / مدخل شارع الجيش',
     isOpen24h: true,
-    tipsAr: 'أسرع مدخل لمناطق (أ، ب، ج، د)، وشارع البوابة الأولى الرئيسي المؤدي للثروة المعدنية.',
+    tipsAr: 'أسرع مدخل لمناطق (أ، ب، ج، د)، وشارع الجيش الرئيسي.',
   },
   {
     id: 'gate_2',
     nameAr: 'البوابة الثانية',
     nameEn: 'Gate 2 (Khafre / Horus)',
     popularNameAr: 'بوابة خفرع (حورس)',
-    lat: 29.9805,
-    lng: 31.1158,
-    descriptionAr: 'المدخل الأوسط من طريق مصر الفيوم، المدخل المباشر لشارع الجيش ومناطق وسط الحدائق.',
+    lat: 29.9705,
+    lng: 31.1085,
+    descriptionAr: 'المدخل الأوسط من طريق القاهرة - الفيوم الصحراوي.',
     servedZones: ['هـ', 'و', 'ز'],
-    accessRoadAr: 'طريق مصر الفيوم / مدخل شارع الجيش',
+    accessRoadAr: 'طريق القاهرة - الفيوم الصحراوي',
     isOpen24h: true,
-    tipsAr: 'المدخل الأنسب لمنطقة (هـ، و، ز) وشارع الجيش وشارع الضغط العالي ومجمع المدارس.',
+    tipsAr: 'المدخل الأنسب لمنطقة (هـ، و، ز) وشارع الجيش والضغط العالي.',
   },
   {
     id: 'gate_3',
     nameAr: 'البوابة الثالثة',
     nameEn: 'Gate 3 (Menkaure)',
     popularNameAr: 'بوابة منقرع',
-    lat: 29.9728,
-    lng: 31.1092,
-    descriptionAr: 'المدخل المؤدي لشارع النادي ومنطقة نادي حدائق الأهرام الرياضي.',
+    lat: 29.9690,
+    lng: 31.1065,
+    descriptionAr: 'المدخل المؤدي لشارع النادي ونادي حدائق الأهرام الرياضي.',
     servedZones: ['ح', 'ط'],
-    accessRoadAr: 'طريق مصر الفيوم / مدخل شارع النادي',
+    accessRoadAr: 'طريق الفيوم / مدخل شارع النادي',
     isOpen24h: true,
-    tipsAr: 'المدخل الأقرب لمنطقتي (ح، ط) ونادي حدائق الأهرام الرياضي والأنشطة المحيطة به.',
+    tipsAr: 'المدخل الأقرب لمنطقتي (ح، ط) ونادي حدائق الأهرام.',
   },
   {
     id: 'gate_4',
     nameAr: 'البوابة الرابعة',
     nameEn: 'Gate 4 (Mena / Ahmes)',
     popularNameAr: 'بوابة مينا (أحمس)',
-    lat: 29.9655,
-    lng: 31.1025,
-    descriptionAr: 'المدخل الجنوبي الأكبر والأحدث، يربط مباشرة بالطريق الدائري وطريق الواحات ومول مصر.',
+    lat: 29.9665,
+    lng: 31.1030,
+    descriptionAr: 'المدخل الجنوبي الأكبر، يربط مباشرة بالطريق الدائري وطريق الواحات ومول مصر.',
     servedZones: ['ك', 'ل', 'م', 'ن'],
-    accessRoadAr: 'الطريق الدائري / طريق الواحات / مدخل شارع الثروة المعدنية',
+    accessRoadAr: 'تقاطع طريق الفيوم مع طريق الواحات والدائري',
     isOpen24h: true,
-    tipsAr: 'المدخل الأفضل للقادمين من الدائري والواحات وأكتوبر، ومدخل مباشر لشارع الثروة ومناطق (ك، ل، م، ن).',
+    tipsAr: 'المدخل الأفضل للقادمين من الدائري والواحات وأكتوبر ومناطق (ك، ل، م، ن).',
   },
 ];
 
@@ -355,37 +356,14 @@ export function getRecommendedGateForZone(letterOrId: string): {
 }
 
 export function estimateBuildingCoordinates(
-  zoneLetterOrId: string,
-  buildingNumber: number | string
-): { lat: number; lng: number; isExact: boolean; accuracyRadiusMeters: number } {
-  const zone = getHadayekZone(zoneLetterOrId);
-  if (!zone) {
-    return { lat: 29.9753, lng: 31.1120, isExact: false, accuracyRadiusMeters: 500 };
+  zoneLetter: string,
+  buildingNumber: string
+): { lat: number; lng: number } {
+  const district = getDistrictByLetter(zoneLetter);
+  if (district) {
+    return { lat: district.centerLat, lng: district.centerLng };
   }
-
-  const num = typeof buildingNumber === 'string' ? parseInt(buildingNumber.replace(/\D/g, ''), 10) : buildingNumber;
-
-  if (!num || isNaN(num)) {
-    return {
-      lat: zone.centerLat,
-      lng: zone.centerLng,
-      isExact: false,
-      accuracyRadiusMeters: 400,
-    };
-  }
-
-  const angle = ((num * 137.5) % 360) * (Math.PI / 180);
-  const distanceKm = 0.08 + ((num % 10) / 10) * 0.18;
-
-  const latOffset = (distanceKm / 110.574) * Math.cos(angle);
-  const lngOffset = (distanceKm / (111.32 * Math.cos((zone.centerLat * Math.PI) / 180))) * Math.sin(angle);
-
-  return {
-    lat: Number((zone.centerLat + latOffset).toFixed(6)),
-    lng: Number((zone.centerLng + lngOffset).toFixed(6)),
-    isExact: true,
-    accuracyRadiusMeters: 250,
-  };
+  return { lat: 29.9680, lng: 31.0980 };
 }
 
 export function calculateDirectDistanceMeters(

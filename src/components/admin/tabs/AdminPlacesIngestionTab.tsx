@@ -114,282 +114,16 @@ const GOOGLE_API_KEY =
   (import.meta as any).env?.VITE_GOOGLE_PLACES_API_KEY ||
   'AIzaSyD3eyrkvcPrYKgGFqUf2p3OrzKgMep_7c4';
 
-// 🏛️ مصفوفة نطاقات وتقسيمات حدائق الأهرام الرسمية (Atlas Hadayek Al-Ahram Matrix)
-export interface HadayekSector {
-  id: string;
-  label: string;
-  query: string;
-  subZone: string;
-  gate?: string;
-  lat: number;
-  lng: number;
-  southLat: number;
-  westLng: number;
-  northLat: number;
-  eastLng: number;
-}
+// 🏛️ مصفوفة نطاقات وتقسيمات حدائق الأهرام الميدانية الدقيقة (Atlas Hadayek Matrix)
+import {
+  HADAYEK_SECTORS_DATA,
+  HadayekSector,
+  HADAYEK_GATES,
+  HADAYEK_AXES,
+} from '../../../services/geo/hadayekAtlasData';
 
-export const HADAYEK_SECTORS: HadayekSector[] = [
-  {
-    id: 'zone_a',
-    label: 'المنطقة أ (بوابة خفرع / شارع الثروة المعدنية)',
-    query: 'المنطقة أ حدائق الأهرام',
-    subZone: 'المنطقة أ',
-    gate: 'البوابة الأولى (خفرع)',
-    lat: 29.9870,
-    lng: 31.1240,
-    southLat: 29.9780,
-    westLng: 31.1150,
-    northLat: 29.9920,
-    eastLng: 31.1300,
-  },
-  {
-    id: 'zone_b',
-    label: 'المنطقة ب (بوابة 1 / خفرع)',
-    query: 'المنطقة ب حدائق الأهرام',
-    subZone: 'المنطقة ب',
-    gate: 'البوابة الأولى (خفرع)',
-    lat: 29.9855,
-    lng: 31.1215,
-    southLat: 29.9770,
-    westLng: 31.1130,
-    northLat: 29.9910,
-    eastLng: 31.1280,
-  },
-  {
-    id: 'zone_c',
-    label: 'المنطقة ج (بوابة 2 / خوفو والشارع التجاري)',
-    query: 'المنطقة ج حدائق الأهرام',
-    subZone: 'المنطقة ج',
-    gate: 'البوابة الثانية (خوفو)',
-    lat: 29.9840,
-    lng: 31.1175,
-    southLat: 29.9760,
-    westLng: 31.1090,
-    northLat: 29.9900,
-    eastLng: 31.1240,
-  },
-  {
-    id: 'zone_d',
-    label: 'المنطقة د (بين البوابتين 2 و 3)',
-    query: 'المنطقة د حدائق الأهرام',
-    subZone: 'المنطقة د',
-    gate: 'البوابة الثانية والثالثة',
-    lat: 29.9815,
-    lng: 31.1130,
-    southLat: 29.9740,
-    westLng: 31.1050,
-    northLat: 29.9880,
-    eastLng: 31.1200,
-  },
-  {
-    id: 'zone_e',
-    label: 'المنطقة هـ',
-    query: 'المنطقة هـ حدائق الأهرام',
-    subZone: 'المنطقة هـ',
-    lat: 29.9790,
-    lng: 31.1100,
-    southLat: 29.9710,
-    westLng: 31.1020,
-    northLat: 29.9850,
-    eastLng: 31.1170,
-  },
-  {
-    id: 'zone_f',
-    label: 'المنطقة و',
-    query: 'المنطقة و حدائق الأهرام',
-    subZone: 'المنطقة و',
-    lat: 29.9775,
-    lng: 31.1070,
-    southLat: 29.9700,
-    westLng: 31.1000,
-    northLat: 29.9840,
-    eastLng: 31.1140,
-  },
-  {
-    id: 'zone_g',
-    label: 'المنطقة ز (بوابة 3 / منقرع)',
-    query: 'المنطقة ز حدائق الأهرام',
-    subZone: 'المنطقة ز',
-    gate: 'البوابة الثالثة (منقرع)',
-    lat: 29.9760,
-    lng: 31.1140,
-    southLat: 29.9680,
-    westLng: 31.1060,
-    northLat: 29.9830,
-    eastLng: 31.1210,
-  },
-  {
-    id: 'zone_h',
-    label: 'المنطقة ح',
-    query: 'المنطقة ح حدائق الأهرام',
-    subZone: 'المنطقة ح',
-    lat: 29.9745,
-    lng: 31.1170,
-    southLat: 29.9670,
-    westLng: 31.1090,
-    northLat: 29.9810,
-    eastLng: 31.1240,
-  },
-  {
-    id: 'zone_i',
-    label: 'المنطقة ط (بوابة 4 / مينا)',
-    query: 'المنطقة ط حدائق الأهرام',
-    subZone: 'المنطقة ط',
-    gate: 'البوابة الرابعة (مينا)',
-    lat: 29.9720,
-    lng: 31.1190,
-    southLat: 29.9640,
-    westLng: 31.1110,
-    northLat: 29.9790,
-    eastLng: 31.1260,
-  },
-  {
-    id: 'zone_k',
-    label: 'المنطقة ك',
-    query: 'المنطقة ك حدائق الأهرام',
-    subZone: 'المنطقة ك',
-    lat: 29.9700,
-    lng: 31.1155,
-    southLat: 29.9620,
-    westLng: 31.1070,
-    northLat: 29.9770,
-    eastLng: 31.1220,
-  },
-  {
-    id: 'zone_l',
-    label: 'المنطقة ل',
-    query: 'المنطقة ل حدائق الأهرام',
-    subZone: 'المنطقة ل',
-    lat: 29.9680,
-    lng: 31.1120,
-    southLat: 29.9600,
-    westLng: 31.1040,
-    northLat: 29.9750,
-    eastLng: 31.1190,
-  },
-  {
-    id: 'zone_m',
-    label: 'المنطقة م',
-    query: 'المنطقة م حدائق الأهرام',
-    subZone: 'المنطقة م',
-    lat: 29.9660,
-    lng: 31.1145,
-    southLat: 29.9580,
-    westLng: 31.1060,
-    northLat: 29.9730,
-    eastLng: 31.1210,
-  },
-  {
-    id: 'zone_n',
-    label: 'المنطقة ن',
-    query: 'المنطقة ن حدائق الأهرام',
-    subZone: 'المنطقة ن',
-    lat: 29.9640,
-    lng: 31.1175,
-    southLat: 29.9560,
-    westLng: 31.1090,
-    northLat: 29.9710,
-    eastLng: 31.1240,
-  },
-  {
-    id: 'zone_s',
-    label: 'المنطقة س',
-    query: 'المنطقة س حدائق الأهرام',
-    subZone: 'المنطقة س',
-    lat: 29.9620,
-    lng: 31.1150,
-    southLat: 29.9540,
-    westLng: 31.1070,
-    northLat: 29.9690,
-    eastLng: 31.1220,
-  },
-  {
-    id: 'zone_sad',
-    label: 'المنطقة ص',
-    query: 'المنطقة ص حدائق الأهرام',
-    subZone: 'المنطقة ص',
-    lat: 29.9600,
-    lng: 31.1125,
-    southLat: 29.9520,
-    westLng: 31.1040,
-    northLat: 29.9670,
-    eastLng: 31.1200,
-  },
-  {
-    id: 'zone_ain',
-    label: 'المنطقة ع',
-    query: 'المنطقة ع حدائق الأهرام',
-    subZone: 'المنطقة ع',
-    lat: 29.9580,
-    lng: 31.1100,
-    southLat: 29.9500,
-    westLng: 31.1020,
-    northLat: 29.9650,
-    eastLng: 31.1170,
-  },
-  {
-    id: 'zone_r',
-    label: 'المنطقة ر',
-    query: 'المنطقة ر حدائق الأهرام',
-    subZone: 'المنطقة ر',
-    lat: 29.9560,
-    lng: 31.1080,
-    southLat: 29.9480,
-    westLng: 31.1000,
-    northLat: 29.9630,
-    eastLng: 31.1150,
-  },
-  {
-    id: 'street_sarwa',
-    label: 'شارع الثروة المعدنية (القطاع التجاري الرئيسي)',
-    query: 'شارع الثروة المعدنية حدائق الأهرام',
-    subZone: 'شارع الثروة المعدنية',
-    gate: 'البوابة الأولى',
-    lat: 29.9850,
-    lng: 31.1220,
-    southLat: 29.9750,
-    westLng: 31.1150,
-    northLat: 29.9900,
-    eastLng: 31.1270,
-  },
-  {
-    id: 'street_geish',
-    label: 'شارع الجيش (محور البوابات الرئيسي)',
-    query: 'شارع الجيش حدائق الأهرام',
-    subZone: 'شارع الجيش',
-    lat: 29.9820,
-    lng: 31.1160,
-    southLat: 29.9650,
-    westLng: 31.1100,
-    northLat: 29.9880,
-    eastLng: 31.1250,
-  },
-  {
-    id: 'street_dght',
-    label: 'شارع الضغط العالي',
-    query: 'شارع الضغط العالي حدائق الأهرام',
-    subZone: 'شارع الضغط العالي',
-    lat: 29.9710,
-    lng: 31.1130,
-    southLat: 29.9620,
-    westLng: 31.1060,
-    northLat: 29.9780,
-    eastLng: 31.1200,
-  },
-  {
-    id: 'hadayek_all',
-    label: 'حدائق الأهرام - كامل المدينة (مسح أطلس الشامل)',
-    query: 'حدائق الأهرام الجيزة',
-    subZone: 'حدائق الأهرام',
-    lat: 29.9753,
-    lng: 31.1120,
-    southLat: 29.9500,
-    westLng: 31.1000,
-    northLat: 29.9920,
-    eastLng: 31.1300,
-  },
-];
+export type { HadayekSector };
+export const HADAYEK_SECTORS: HadayekSector[] = HADAYEK_SECTORS_DATA;
 
 // 🌐 نطاقات التوسع المصرية الأخرى (محفوظة بكود المنظومة للتوسع المستقبلي)
 export const FUTURE_EXPANSION_HUBS = [
@@ -1802,22 +1536,22 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 onChange={(e) => handleSectorChange(Number(e.target.value))}
                 className="w-full bg-[var(--input-bg)] border border-amber-500/40 text-[var(--text-primary)] text-xs font-black p-3 rounded-2xl focus:border-amber-500 focus:outline-hidden cursor-pointer"
               >
-                <optgroup label="🏛️ المناطق والتقسيمات الأبجدية">
-                  {HADAYEK_SECTORS.slice(0, 17).map((s, i) => (
+                <optgroup label="🏛️ المناطق والتقسيمات الأبجدية الـ 16">
+                  {HADAYEK_SECTORS.slice(0, 16).map((s, i) => (
                     <option key={s.id} value={i}>
                       📍 {s.label}
                     </option>
                   ))}
                 </optgroup>
                 <optgroup label="🛣️ المحاور والشوارع التجارية الرئيسية">
-                  {HADAYEK_SECTORS.slice(17, 20).map((s, i) => (
-                    <option key={s.id} value={i + 17}>
+                  {HADAYEK_SECTORS.slice(16, 19).map((s, i) => (
+                    <option key={s.id} value={i + 16}>
                       🛣️ {s.label}
                     </option>
                   ))}
                 </optgroup>
                 <optgroup label="🌐 النطاق العام">
-                  <option value={20}>🌐 {HADAYEK_SECTORS[20].label}</option>
+                  <option value={19}>🌐 {HADAYEK_SECTORS[19]?.label || 'حدائق الأهرام - كامل المدينة'}</option>
                 </optgroup>
               </select>
             )}
