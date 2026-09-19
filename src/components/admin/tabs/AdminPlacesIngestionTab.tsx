@@ -1383,6 +1383,37 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
         } catch {}
       }
 
+      // محاولة 3: بحث بالاسم في Google Places إذا لم تتوفر صورة بالمعرف
+      if (!photoUri && name) {
+        try {
+          const sRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_API_KEY,
+              'X-Goog-FieldMask': 'places.photos',
+            },
+            body: JSON.stringify({
+              textQuery: `${name} حدائق الاهرام`,
+              languageCode: 'ar',
+            }),
+          });
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            const firstFound = sData.places?.[0]?.photos?.[0];
+            if (firstFound?.name) {
+              const mRes = await fetch(
+                `https://places.googleapis.com/v1/${firstFound.name}/media?maxHeightPx=800&maxWidthPx=800&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`
+              );
+              if (mRes.ok) {
+                const mData = await mRes.json();
+                if (mData?.photoUri) photoUri = mData.photoUri;
+              }
+            }
+          }
+        } catch {}
+      }
+
       // إذا لم تتوفر صورة في Google نستخدم صورة الفئة المعتمدة
       const finalPhoto = photoUri || getCategoryFallbackCover(category);
       setCandidatePlaces((prev) =>
@@ -1519,6 +1550,40 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
             } catch (directErr) {
               console.warn('⚠️ Direct Places Details fallback warning:', directErr);
             }
+          }
+
+          // محاولة 4: بحث ثانوي باسم المنشأة في Google Places إذا لم تتوفر صورة بالمعرف المباشر
+          if (!enrichedPhoto && p.displayName) {
+            try {
+              const sRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Goog-Api-Key': GOOGLE_API_KEY,
+                  'X-Goog-FieldMask': 'places.photos',
+                },
+                body: JSON.stringify({
+                  textQuery: `${p.displayName} حدائق الاهرام`,
+                  languageCode: 'ar',
+                }),
+              });
+              if (sRes.ok) {
+                const sData = await sRes.json();
+                const firstFound = sData.places?.[0]?.photos?.[0];
+                if (firstFound?.name) {
+                  const mRes = await fetch(
+                    `https://places.googleapis.com/v1/${firstFound.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}&skipHttpRedirect=true`
+                  );
+                  if (mRes.ok) {
+                    const mData = await mRes.json();
+                    if (mData?.photoUri) enrichedPhoto = mData.photoUri;
+                  }
+                  if (!enrichedPhoto) {
+                    enrichedPhoto = `https://places.googleapis.com/v1/${firstFound.name}/media?maxHeightPx=1600&maxWidthPx=1600&key=${GOOGLE_API_KEY}`;
+                  }
+                }
+              }
+            } catch {}
           }
         } catch (enrichErr) {
           console.warn('⚠️ فشل إثراء بيانات المنشأة (سيتم الحفظ بالبيانات المتاحة):', p.id, enrichErr);
