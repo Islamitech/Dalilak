@@ -139,7 +139,24 @@ export function generateSectorMicroGrid(box: BoundingBox, rows: number = 2, cols
 }
 
 /**
- * الحقول المطلوبة من واجهة خرائط Google Places API v1
+ * 🆓 حقول الاستكشاف والرصد الأساسي المجاني (Basic Tier - Zero Extra Charges)
+ * تقتصر على الهوية والموقع والاسم والتصنيف فقط دون سحب تفاصيل المراجعات أو ساعات العمل أو الصور
+ * مما يتيح تمشيط آلاف المنشآت مجاناً وبأعلى سرعة ممكنة
+ */
+export const PLACES_API_DISCOVERY_FIELD_MASK = [
+  'places.id',
+  'places.displayName',
+  'places.primaryType',
+  'places.primaryTypeDisplayName',
+  'places.types',
+  'places.formattedAddress',
+  'places.location',
+  'places.googleMapsUri',
+].join(',');
+
+/**
+ * 💎 حقول التفاصيل الشاملة المتقدمة (Advanced Tier)
+ * تستخدم فقط عند مرحلة السحب والتوثيق الفعلي للمنشآت المختارة (دفعة الـ 100)
  */
 export const PLACES_API_FIELD_MASK = [
   'places.id',
@@ -299,6 +316,7 @@ export async function executeSpatialMeshScan(
     categoryType?: string; // نوع الفئة لتوجيه Google places بدقة
     includedPrimaryTypes?: string[]; // أنواع Google المحددة
     enableDeepStratumScan?: boolean; // تفعيل السحب المزدوج (شهرة + مسافة)
+    isDiscoveryMode?: boolean; // نمط الاستكشاف المجاني الخالص (Basic Tier Mask)
     onProgress?: (progressText: string, currentFound: number) => void;
   }
 ): Promise<QuadBucketScanResult> {
@@ -311,6 +329,11 @@ export async function executeSpatialMeshScan(
   if (!targetPrimaryTypes && options?.categoryType && options.categoryType !== 'all') {
     targetPrimaryTypes = CATEGORY_GOOGLE_PRIMARY_TYPES[options.categoryType];
   }
+
+  // نمط الاستكشاف المجاني يستخدم قناع الحقول الأساسي (Zero Extra Fees)
+  const activeFieldMask = options?.isDiscoveryMode !== false 
+    ? PLACES_API_DISCOVERY_FIELD_MASK 
+    : PLACES_API_FIELD_MASK;
 
   const seenIds = new Set<string>();
   const seenNames = new Set<string>();
@@ -372,7 +395,7 @@ export async function executeSpatialMeshScan(
           headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': apiKey,
-            'X-Goog-FieldMask': PLACES_API_FIELD_MASK,
+            'X-Goog-FieldMask': activeFieldMask,
           },
           body: JSON.stringify(nearbyBody),
         });
@@ -497,7 +520,8 @@ export async function executeSpatialMeshScan(
     }
   }
 
-  const estimatedCost = (apiCallsCount * 0.032).toFixed(3);
+  const isDiscovery = options?.isDiscoveryMode !== false;
+  const estimatedCost = isDiscovery ? '0.000 (مجاني - نمط الاستكشاف)' : (apiCallsCount * 0.032).toFixed(3);
 
   return {
     commercial,

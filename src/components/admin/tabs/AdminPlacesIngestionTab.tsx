@@ -1732,7 +1732,7 @@ export const AdminPlacesIngestionTab: React.FC<AdminPlacesIngestionTabProps> = (
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 fill-current text-slate-950" />
-                    <span>بدء السحب الجغرافي للمنطقة</span>
+                    <span>بدء الاستكشاف والرصد المكاني (مجاني 100%)</span>
                   </>
                 )}
               </button>
