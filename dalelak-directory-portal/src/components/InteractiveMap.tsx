@@ -203,10 +203,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       case 'dalelak-clean':
       default:
         return {
-          url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
           maxZoom: 19,
-          subdomains: 'abcd',
-          attribution: '© خريطة دليلك الميدانية / OpenStreetMap',
+          subdomains: ['a', 'b', 'c'],
+          attribution: '© خريطة دليلك الميدانية / OpenStreetMap contributors',
         };
     }
   };
@@ -536,10 +536,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           district.polygons.forEach((polyCoords) => {
             const polygon = window.L.polygon(polyCoords, {
               color: district.color,
-              weight: 2.5,
-              opacity: 0.9,
+              weight: 2,
+              opacity: 0.85,
               fillColor: district.color,
-              fillOpacity: 0.22,
+              fillOpacity: 0.18,
               className: 'hadayek-district-polygon',
             });
 
@@ -548,7 +548,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             });
 
             polygon.bindTooltip(`
-              <div dir="rtl" style="font-family: Cairo, sans-serif; font-weight: 900; font-size: 12px; color: ${district.color}; padding: 2px 4px;">
+              <div dir="rtl" style="font-family: 'Cairo', system-ui, sans-serif; font-weight: 800; font-size: 12px; color: ${district.color}; padding: 3px 6px;">
                 ${escapeHtml(district.nameAr)} (${escapeHtml(district.nameEn)})
               </div>
             `, { sticky: true, direction: 'top' });
@@ -556,11 +556,38 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             markersGroup.addLayer(polygon);
           });
 
-          // Add a sleek center badge label for the district
+          // Sleek glassmorphic center badge label for the district
           const labelHtml = `
             <div style="transform: translate(-50%, -50%); cursor: pointer; user-select: none; pointer-events: auto;">
-              <div style="background: ${district.color}; color: #ffffff; padding: 2px 7px; border-radius: 9999px; font-family: Cairo, sans-serif; font-weight: 900; font-size: 11px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); border: 1.5px solid #ffffff; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;">
-                <span>${escapeHtml(district.nameAr)}</span>
+              <div style="
+                background: rgba(15, 23, 42, 0.92);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border: 1.5px solid ${district.color};
+                color: #ffffff;
+                padding: 3px 9px;
+                border-radius: 9999px;
+                font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+                font-weight: 800;
+                font-size: 11px;
+                line-height: 1;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px ${district.color}40;
+                white-space: nowrap;
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                transition: transform 0.18s ease;
+              ">
+                <span style="
+                  width: 7px;
+                  height: 7px;
+                  border-radius: 50%;
+                  background: ${district.color};
+                  box-shadow: 0 0 6px ${district.color};
+                  display: inline-block;
+                  flex-shrink: 0;
+                "></span>
+                <span style="letter-spacing: -0.2px;">${escapeHtml(district.nameAr)}</span>
               </div>
             </div>
           `;
@@ -568,8 +595,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           const labelIcon = window.L.divIcon({
             className: 'custom-district-label',
             html: labelHtml,
-            iconSize: [70, 22],
-            iconAnchor: [35, 11],
+            iconSize: [88, 28],
+            iconAnchor: [44, 14],
           });
 
           const labelMarker = window.L.marker([district.centerLat, district.centerLng], {
@@ -585,32 +612,75 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         });
       }
 
-      // 🚪 Render Hadayek Official Gates as Landmark Pins
+      // 🚪 Render Hadayek Official Gates as Modern Landmark Pins
       if (showHadayekGates && showGatesLayer && window.L) {
         HADAYEK_OFFICIAL_GATES.forEach((gate) => {
           const gateHtml = `
             <div style="position: relative; transform: translate(-50%, -100%); cursor: pointer; user-select: none; display: flex; flex-direction: column; align-items: center;">
-              <div style="background: linear-gradient(135deg, #312e81, #1e1b4b); border: 2px solid #818cf8; color: #ffffff; padding: 4px 10px; border-radius: 9999px; font-family: Cairo, sans-serif; font-weight: 800; font-size: 11px; box-shadow: 0 4px 14px rgba(49, 46, 129, 0.6); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
-                <span style="font-size: 13px;">🚪</span>
-                <span>${escapeHtml(gate.nameAr)} (${escapeHtml(gate.popularNameAr)})</span>
+              <div style="
+                background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+                border: 1.5px solid #818cf8;
+                color: #ffffff;
+                padding: 3.5px 9px 3.5px 6px;
+                border-radius: 9999px;
+                font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+                font-weight: 800;
+                font-size: 11px;
+                line-height: 1;
+                box-shadow: 0 4px 16px rgba(15, 23, 42, 0.6), 0 0 12px rgba(129, 140, 248, 0.35);
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                white-space: nowrap;
+              ">
+                <span style="
+                  background: #4f46e5;
+                  color: #ffffff;
+                  border: 1px solid #a5b4fc;
+                  width: 17px;
+                  height: 17px;
+                  border-radius: 50%;
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 10px;
+                  font-weight: 900;
+                  flex-shrink: 0;
+                ">${gate.number || '🚪'}</span>
+                <span style="color: #f8fafc; font-weight: 800; letter-spacing: -0.2px;">${escapeHtml(gate.popularNameAr || gate.shortNameAr)}</span>
               </div>
-              <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #818cf8;"></div>
+              <div style="
+                width: 0;
+                height: 0;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 5px solid #818cf8;
+                margin-top: -1px;
+              "></div>
             </div>
           `;
 
           const gateIcon = window.L.divIcon({
             className: 'custom-gate-pin',
             html: gateHtml,
-            iconSize: [160, 36],
-            iconAnchor: [80, 36],
+            iconSize: [110, 32],
+            iconAnchor: [55, 32],
           });
 
           const gateMarker = window.L.marker([gate.lat, gate.lng], { icon: gateIcon, zIndexOffset: 400 });
           gateMarker.bindPopup(`
-            <div dir="rtl" style="font-family: Cairo, sans-serif; text-align: right; min-width: 190px;">
-              <b style="color: #4338ca; font-size: 13px;">🚪 ${escapeHtml(gate.nameAr)} (${escapeHtml(gate.popularNameAr)})</b>
-              <p style="margin: 4px 0; font-size: 11px; color: #475569;"><b>🛣️ الطريق:</b> ${escapeHtml(gate.accessRoadAr)}</p>
-              <p style="margin: 4px 0; font-size: 11px; color: #047857;"><b>🎯 تخدم مناطق:</b> ${escapeHtml(gate.servedZones.join('، '))}</p>
+            <div dir="rtl" style="font-family: 'Cairo', system-ui, sans-serif; text-align: right; min-width: 220px; padding: 4px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+                <span style="background: #4f46e5; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900;">${gate.number || '🚪'}</span>
+                <b style="color: #1e1b4b; font-size: 13px;">${escapeHtml(gate.nameAr)}</b>
+              </div>
+              <p style="margin: 4px 0; font-size: 11px; color: #475569; line-height: 1.4;"><b>🛣️ الطريق:</b> ${escapeHtml(gate.accessRoadAr)}</p>
+              <p style="margin: 4px 0; font-size: 11px; color: #047857; line-height: 1.4;"><b>🎯 تخدم مناطق:</b> ${escapeHtml(gate.servedZones.join('، '))}</p>
+              <div style="margin-top: 8px;">
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${gate.lat},${gate.lng}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; background: #4f46e5; color: #fff; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; text-decoration: none;">
+                  <span>📍 الاتجاهات عبر Google Maps</span>
+                </a>
+              </div>
             </div>
           `);
           markersGroup.addLayer(gateMarker);
@@ -985,6 +1055,23 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
               <span>🗺️ تقسيمات المناطق</span>
               <span className={`w-2 h-2 rounded-full ${showDistrictsOverlay ? 'bg-emerald-400' : 'bg-slate-500'}`} />
             </button>
+
+            {/* 🚪 زر بوابات الحدائق */}
+            {showHadayekGates && (
+              <button
+                type="button"
+                onClick={() => setShowGatesLayer(!showGatesLayer)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+                  showGatesLayer
+                    ? 'bg-purple-700 hover:bg-purple-600 text-white shadow-sm'
+                    : 'bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/40'
+                }`}
+                title="إظهار أو إخفاء بوابات حدائق الأهرام (خوفو، أحمس، خفرع، منقرع، حورس، مينا)"
+              >
+                <span>🚪 بوابات الحدائق</span>
+                <span className={`w-2 h-2 rounded-full ${showGatesLayer ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              </button>
+            )}
 
             {/* 👁️ زر إخفاء / إظهار الأنشطة لتقليل الزحام */}
             {mode === 'view' && (

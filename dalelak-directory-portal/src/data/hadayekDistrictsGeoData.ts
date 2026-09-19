@@ -1659,9 +1659,22 @@ export function findDistrictForCoordinates(lat: number, lng: number): HadayekOff
 }
 
 /**
- * Get district by letter (e.g. 'أ', 'ب', 'ل')
+ * Get district by letter (e.g. 'أ', 'ب', 'ل', 'هـ')
  */
 export function getDistrictByLetter(letter: string): HadayekOfficialDistrict | undefined {
-  const clean = letter.replace('منطقة', '').trim();
-  return HADAYEK_OFFICIAL_DISTRICTS.find((d) => d.letterAr === clean);
+  if (!letter) return undefined;
+  const clean = letter.replace(/^منطقة\s+/, '').trim();
+  const normalize = (s: string) => s.replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/هـ/g, 'ه').trim();
+  const normClean = normalize(clean);
+
+  return HADAYEK_OFFICIAL_DISTRICTS.find((d) => {
+    return (
+      d.letterAr === clean ||
+      normalize(d.letterAr) === normClean ||
+      d.nameAr === letter ||
+      normalize(d.nameAr) === normalize(letter) ||
+      d.nameEn.toLowerCase() === clean.toLowerCase()
+    );
+  });
 }
+

@@ -1,10 +1,11 @@
 import { getDistrictByLetter, HADAYEK_OFFICIAL_DISTRICTS } from './hadayekDistrictsGeoData';
+
 /**
  * 🗺️ Hadayek Atlas & Proximity Navigator Data Engine
  * 
  * Comprehensive geographic knowledge base for Hadayek Al-Ahram (هضبة الأهرام - الجيزة):
- * - 16 Master Alphabetical Zones (منطقة أ إلى منطقة ن) with central bounds and landmarks
- * - The 4 Major Gates (خوفو، خفرع، منقرع، مينا) + Auxiliary Gates (حورس، أحمس)
+ * - 16 Master Alphabetical Zones (منطقة أ إلى منطقة ن + س، ص، ع) with verified boundary centroids
+ * - The 6 Official Gates (خوفو، أحمس، خفرع، منقرع، حورس، مينا) with OpenStreetMap GPS coordinates
  * - Arterial avenues (شارع الجيش، الثروة المعدنية، النادي، الضغط العالي، الخزان، البوابة الأولى)
  * - Building location estimation and gate routing algorithms
  * - Quick emergency and daily resident lifelines
@@ -12,8 +13,10 @@ import { getDistrictByLetter, HADAYEK_OFFICIAL_DISTRICTS } from './hadayekDistri
 
 export interface HadayekGate {
   id: string;
+  number: number;
   nameAr: string;
   nameEn: string;
+  shortNameAr: string;
   popularNameAr: string;
   lat: number;
   lng: number;
@@ -48,73 +51,111 @@ export interface HadayekLifelineCategory {
 }
 
 // =============================================================================
-// 🚪 1. The 4 Major Gates + Auxiliary Gates
+// 🚪 1. The 6 Official Gates of Hadayek Al-Ahram (OSM-Calibrated GPS)
 // =============================================================================
 export const HADAYEK_GATES: HadayekGate[] = [
   {
     id: 'gate_1',
-    nameAr: 'البوابة الأولى',
+    number: 1,
+    nameAr: 'البوابة الأولى (خوفو)',
     nameEn: 'Gate 1 (Khufu)',
+    shortNameAr: 'بوابة خوفو (1)',
     popularNameAr: 'بوابة خوفو',
-    lat: 29.9740,
-    lng: 31.1140,
-    descriptionAr: 'المدخل الشمالي الرئيسي للحدائق من طريق القاهرة - الفيوم الصحراوي / مدخل شارع الجيش.',
+    lat: 29.9777,
+    lng: 31.1122,
+    descriptionAr: 'المدخل الشمالي الرئيسي للحدائق من طريق القاهرة - الفيوم الصحراوي ومدخل شارع الجيش.',
     servedZones: ['أ', 'ب', 'ج', 'د'],
     accessRoadAr: 'طريق القاهرة - الفيوم الصحراوي / مدخل شارع الجيش',
     isOpen24h: true,
-    tipsAr: 'أسرع مدخل لمناطق (أ، ب، ج، د)، وشارع الجيش الرئيسي.',
+    tipsAr: 'أسرع مدخل لمناطق (أ، ب، ج، د)، وشارع الجيش الرئيسي والسنتر التجاري.',
+  },
+  {
+    id: 'gate_ahmes',
+    number: 2,
+    nameAr: 'بوابة أحمس (2 الجديدة)',
+    nameEn: 'Gate Ahmes (2-New)',
+    shortNameAr: 'بوابة أحمس (2ج)',
+    popularNameAr: 'بوابة أحمس',
+    lat: 29.9713,
+    lng: 31.1084,
+    descriptionAr: 'المدخل الإضافي المستحدث لتخفيف الضغط بين البوابة الأولى والثانية باتجاه شارع الجيش والضغط.',
+    servedZones: ['د', 'هـ'],
+    accessRoadAr: 'طريق القاهرة - الفيوم الصحراوي',
+    isOpen24h: true,
+    tipsAr: 'مدخل سريع وممتاز لتفادي زحام البوابة الأولى والثانية لمنطقتي د وهـ.',
   },
   {
     id: 'gate_2',
-    nameAr: 'البوابة الثانية',
-    nameEn: 'Gate 2 (Khafre / Horus)',
-    popularNameAr: 'بوابة خفرع (حورس)',
-    lat: 29.9705,
-    lng: 31.1085,
-    descriptionAr: 'المدخل الأوسط من طريق القاهرة - الفيوم الصحراوي.',
+    number: 2,
+    nameAr: 'البوابة الثانية (خفرع)',
+    nameEn: 'Gate 2 (Khafre)',
+    shortNameAr: 'بوابة خفرع (2)',
+    popularNameAr: 'بوابة خفرع',
+    lat: 29.9643,
+    lng: 31.1083,
+    descriptionAr: 'المدخل الأوسط الحيوي من طريق القاهرة - الفيوم الصحراوي نحو وسط الحدائق وشارع الجيش الأوسط.',
     servedZones: ['هـ', 'و', 'ز'],
-    accessRoadAr: 'طريق القاهرة - الفيوم الصحراوي',
+    accessRoadAr: 'طريق القاهرة - الفيوم الصحراوي / مدخل شارع الجيش الأوسط',
     isOpen24h: true,
-    tipsAr: 'المدخل الأنسب لمنطقة (هـ، و، ز) وشارع الجيش والضغط العالي.',
+    tipsAr: 'المدخل الأنسب لمناطق (هـ، و، ز) وشارع الجيش وشارع الضغط العالي.',
   },
   {
     id: 'gate_3',
-    nameAr: 'البوابة الثالثة',
+    number: 3,
+    nameAr: 'البوابة الثالثة (منقرع)',
     nameEn: 'Gate 3 (Menkaure)',
+    shortNameAr: 'بوابة منقرع (3)',
     popularNameAr: 'بوابة منقرع',
-    lat: 29.9690,
-    lng: 31.1065,
-    descriptionAr: 'المدخل المؤدي لشارع النادي ونادي حدائق الأهرام الرياضي.',
-    servedZones: ['ح', 'ط'],
+    lat: 29.9536,
+    lng: 31.1037,
+    descriptionAr: 'المدخل المباشر لشارع النادي ونادي حدائق الأهرام الرياضي ومناطق ح وط وس وم.',
+    servedZones: ['ح', 'ط', 'س', 'م'],
     accessRoadAr: 'طريق الفيوم / مدخل شارع النادي',
     isOpen24h: true,
-    tipsAr: 'المدخل الأقرب لمنطقتي (ح، ط) ونادي حدائق الأهرام.',
+    tipsAr: 'المدخل الأقرب لنادي حدائق الأهرام ومناطق (ح، ط، س، م).',
+  },
+  {
+    id: 'gate_horus',
+    number: 4,
+    nameAr: 'بوابة حورس (الجنوبية)',
+    nameEn: 'Gate Horus (South)',
+    shortNameAr: 'بوابة حورس',
+    popularNameAr: 'بوابة حورس',
+    lat: 29.9490,
+    lng: 31.0954,
+    descriptionAr: 'المدخل الجنوبي للحدائق الرابط بطريق الواحات والمناطق الجنوبية (ص، ع).',
+    servedZones: ['ص', 'ع'],
+    accessRoadAr: 'طريق الواحات / المدخل الجنوبي للحدائق',
+    isOpen24h: true,
+    tipsAr: 'المدخل المباشر للمناطق الجنوبية ص وع القادمة من طريق الواحات.',
   },
   {
     id: 'gate_4',
-    nameAr: 'البوابة الرابعة',
-    nameEn: 'Gate 4 (Mena / Ahmes)',
-    popularNameAr: 'بوابة مينا (أحمس)',
-    lat: 29.9665,
-    lng: 31.1030,
-    descriptionAr: 'المدخل الجنوبي الأكبر، يربط مباشرة بالطريق الدائري وطريق الواحات ومول مصر.',
-    servedZones: ['ك', 'ل', 'م', 'ن'],
-    accessRoadAr: 'تقاطع طريق الفيوم مع طريق الواحات والدائري',
+    number: 4,
+    nameAr: 'البوابة الرابعة (مينا)',
+    nameEn: 'Gate 4 (Mena)',
+    shortNameAr: 'بوابة مينا (4)',
+    popularNameAr: 'بوابة مينا',
+    lat: 29.9520,
+    lng: 31.0881,
+    descriptionAr: 'المدخل الغربي الأكبر، يربط مباشرة بالطريق الدائري وطريق الواحات ومول مصر ومدخل شارع الثروة المعدنية.',
+    servedZones: ['ك', 'ل', 'ن'],
+    accessRoadAr: 'تقاطع طريق الواحات مع الدائري / مدخل شارع الثروة المعدنية',
     isOpen24h: true,
-    tipsAr: 'المدخل الأفضل للقادمين من الدائري والواحات وأكتوبر ومناطق (ك، ل، م، ن).',
+    tipsAr: 'المدخل الأفضل للقادمين من الدائري والواحات وأكتوبر ومناطق (ك، ل، ن).',
   },
 ];
 
 // =============================================================================
-// 🏛️ 2. The 16 Master Zones (أ إلى ن)
+// 🏛️ 2. The 16 Master Zones (أ إلى ن + س، ص، ع)
 // =============================================================================
 export const HADAYEK_ZONES: HadayekZone[] = [
   {
     id: 'zone_a',
     letterAr: 'أ',
     nameAr: 'منطقة أ',
-    centerLat: 29.9868,
-    centerLng: 31.1180,
+    centerLat: 29.985605,
+    centerLng: 31.103333,
     recommendedGateId: 'gate_1',
     mainStreetsAr: ['شارع البوابة الأولى', 'شارع الثروة المعدنية (البداية)', 'شارع الخزان'],
     famousLandmarksAr: ['ميدان البوابة الأولى', 'سنتر البوابة', 'صيدليات العزبي والعائلات'],
@@ -125,10 +166,10 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_b',
     letterAr: 'ب',
     nameAr: 'منطقة ب',
-    centerLat: 29.9845,
-    centerLng: 31.1210,
+    centerLat: 29.979184,
+    centerLng: 31.106863,
     recommendedGateId: 'gate_1',
-    secondaryGateId: 'gate_2',
+    secondaryGateId: 'gate_ahmes',
     mainStreetsAr: ['شارع الخزان', 'شارع متفرع من البوابة الأولى'],
     famousLandmarksAr: ['محطة الخزان', 'مجمع خدمات منطقة ب'],
     approximateBuildingsCount: 420,
@@ -138,10 +179,10 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_c',
     letterAr: 'ج',
     nameAr: 'منطقة ج',
-    centerLat: 29.9818,
-    centerLng: 31.1245,
+    centerLat: 29.974896,
+    centerLng: 31.108811,
     recommendedGateId: 'gate_1',
-    secondaryGateId: 'gate_2',
+    secondaryGateId: 'gate_ahmes',
     mainStreetsAr: ['شارع النادي القديم', 'شارع العشرين'],
     famousLandmarksAr: ['ميدان منطقة ج', 'سوق ج التجاري'],
     approximateBuildingsCount: 450,
@@ -151,23 +192,23 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_d',
     letterAr: 'د',
     nameAr: 'منطقة د',
-    centerLat: 29.9790,
-    centerLng: 31.1265,
-    recommendedGateId: 'gate_1',
-    secondaryGateId: 'gate_2',
+    centerLat: 29.976336,
+    centerLng: 31.102045,
+    recommendedGateId: 'gate_ahmes',
+    secondaryGateId: 'gate_1',
     mainStreetsAr: ['شارع الضغط القديم', 'امتداد شارع الخزان'],
     famousLandmarksAr: ['مدرسة الأهرام', 'سنتر منطقة د'],
     approximateBuildingsCount: 390,
-    descriptionAr: 'تتميز بقربها من البوابة الأولى والثانية وهدوئها السكني.',
+    descriptionAr: 'تتميز بقربها من بوابة أحمس وبوابة خوفو وهدوئها السكني.',
   },
   {
     id: 'zone_e',
     letterAr: 'هـ',
     nameAr: 'منطقة هـ',
-    centerLat: 29.9795,
-    centerLng: 31.1165,
+    centerLat: 29.966750,
+    centerLng: 31.106067,
     recommendedGateId: 'gate_2',
-    secondaryGateId: 'gate_1',
+    secondaryGateId: 'gate_ahmes',
     mainStreetsAr: ['شارع الجيش الرئيسي', 'شارع البوابة الثانية'],
     famousLandmarksAr: ['مدخل شارع الجيش', 'ميدان البوابة الثانية (خفرع)'],
     approximateBuildingsCount: 430,
@@ -177,8 +218,8 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_w',
     letterAr: 'و',
     nameAr: 'منطقة و',
-    centerLat: 29.9772,
-    centerLng: 31.1198,
+    centerLat: 29.960729,
+    centerLng: 31.105924,
     recommendedGateId: 'gate_2',
     secondaryGateId: 'gate_3',
     mainStreetsAr: ['شارع الجيش الأوسط', 'شارع الضغط العالي'],
@@ -190,10 +231,10 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_z',
     letterAr: 'ز',
     nameAr: 'منطقة ز',
-    centerLat: 29.9748,
-    centerLng: 31.1225,
+    centerLat: 29.979663,
+    centerLng: 31.094660,
     recommendedGateId: 'gate_2',
-    secondaryGateId: 'gate_3',
+    secondaryGateId: 'gate_1',
     mainStreetsAr: ['شارع الضغط العالي', 'شارع الجيش'],
     famousLandmarksAr: ['مجمع مدارس رويال', 'ميدان منطقة ز'],
     approximateBuildingsCount: 410,
@@ -203,8 +244,8 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_h',
     letterAr: 'ح',
     nameAr: 'منطقة ح',
-    centerLat: 29.9735,
-    centerLng: 31.1120,
+    centerLat: 29.975586,
+    centerLng: 31.095207,
     recommendedGateId: 'gate_3',
     secondaryGateId: 'gate_2',
     mainStreetsAr: ['شارع النادي الرئيسي', 'شارع البوابة الثالثة'],
@@ -216,12 +257,12 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_t',
     letterAr: 'ط',
     nameAr: 'منطقة ط',
-    centerLat: 29.9712,
-    centerLng: 31.1155,
+    centerLat: 29.966395,
+    centerLng: 31.096946,
     recommendedGateId: 'gate_3',
     secondaryGateId: 'gate_4',
     mainStreetsAr: ['امتداد شارع النادي', 'شارع الثروة المعدنية'],
-    famousLandmarksAr: ['خلف النادي الأهلي / حدائق الأهرام', 'مول العاصمة'],
+    famousLandmarksAr: ['خلف نادي حدائق الأهرام', 'مول العاصمة'],
     approximateBuildingsCount: 470,
     descriptionAr: 'منطقة سكنية وتجارية كبرى تجمع بين هدوء الفيلات وحيوية شارع النادي.',
   },
@@ -229,8 +270,8 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_k',
     letterAr: 'ك',
     nameAr: 'منطقة ك',
-    centerLat: 29.9695,
-    centerLng: 31.1075,
+    centerLat: 29.963337,
+    centerLng: 31.099399,
     recommendedGateId: 'gate_4',
     secondaryGateId: 'gate_3',
     mainStreetsAr: ['شارع الثروة المعدنية', 'شارع البوابة الرابعة'],
@@ -242,8 +283,8 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_l',
     letterAr: 'ل',
     nameAr: 'منطقة ل',
-    centerLat: 29.9670,
-    centerLng: 31.1105,
+    centerLat: 29.962123,
+    centerLng: 31.094918,
     recommendedGateId: 'gate_4',
     mainStreetsAr: ['شارع الثروة المعدنية الرئيسي', 'شارع جاردينيا'],
     famousLandmarksAr: ['سنتر منطقة ل', 'أشهر معالم الثروة المعدنية', 'بنوك وماكينات ATM'],
@@ -254,25 +295,66 @@ export const HADAYEK_ZONES: HadayekZone[] = [
     id: 'zone_m',
     letterAr: 'م',
     nameAr: 'منطقة م',
-    centerLat: 29.9642,
-    centerLng: 31.1140,
-    recommendedGateId: 'gate_4',
+    centerLat: 29.956892,
+    centerLng: 31.104221,
+    recommendedGateId: 'gate_3',
+    secondaryGateId: 'gate_2',
     mainStreetsAr: ['شارع الثروة المعدنية الأخير', 'امتداد جاردينيا'],
     famousLandmarksAr: ['محطة م', 'مجمع الخدمات الطبية'],
     approximateBuildingsCount: 480,
-    descriptionAr: 'منطقة راقية حديثة قريبة من البوابة الرابعة والطريق الدائري.',
+    descriptionAr: 'منطقة راقية حديثة قريبة من البوابة الثالثة وطريق الفيوم.',
   },
   {
     id: 'zone_n',
     letterAr: 'ن',
     nameAr: 'منطقة ن',
-    centerLat: 29.9620,
-    centerLng: 31.1070,
+    centerLat: 29.956893,
+    centerLng: 31.096753,
     recommendedGateId: 'gate_4',
+    secondaryGateId: 'gate_horus',
     mainStreetsAr: ['شارع البوابة الرابعة الجديد', 'طريق الواحات الموازي'],
-    famousLandmarksAr: ['بوابة أحمس الجديدة', 'ممشى منطقة ن'],
+    famousLandmarksAr: ['بوابة مينا الجديدة', 'ممشى منطقة ن'],
     approximateBuildingsCount: 490,
     descriptionAr: 'أحدث مناطق الحدائق السكنية وأقربها لمخرج الدائري وطريق الواحات ومول مصر.',
+  },
+  {
+    id: 'zone_s',
+    letterAr: 'س',
+    nameAr: 'منطقة س',
+    centerLat: 29.954085,
+    centerLng: 31.100611,
+    recommendedGateId: 'gate_3',
+    secondaryGateId: 'gate_horus',
+    mainStreetsAr: ['محور النادي الأوسط', 'شارع متفرع من البوابة الثالثة'],
+    famousLandmarksAr: ['محور نادي حدائق الأهرام', 'مجمع خدمات س'],
+    approximateBuildingsCount: 370,
+    descriptionAr: 'منطقة هادئة قريبة من نادي حدائق الأهرام ومحور البوابة الثالثة.',
+  },
+  {
+    id: 'zone_sad',
+    letterAr: 'ص',
+    nameAr: 'منطقة ص',
+    centerLat: 29.950286,
+    centerLng: 31.099352,
+    recommendedGateId: 'gate_horus',
+    secondaryGateId: 'gate_3',
+    mainStreetsAr: ['شارع البوابة الجنوبية', 'محور الواحات الداخلي'],
+    famousLandmarksAr: ['بوابة حورس', 'مجمع الخدمات الجنوبي'],
+    approximateBuildingsCount: 350,
+    descriptionAr: 'المنطقة الجنوبية المطلة على بوابة حورس وطريق الواحات.',
+  },
+  {
+    id: 'zone_ain',
+    letterAr: 'ع',
+    nameAr: 'منطقة ع',
+    centerLat: 29.952557,
+    centerLng: 31.092712,
+    recommendedGateId: 'gate_horus',
+    secondaryGateId: 'gate_4',
+    mainStreetsAr: ['امتداد شارع الثروة المعدنية', 'شارع بوابة حورس'],
+    famousLandmarksAr: ['تقاطع حورس مع مينا', 'ميدان منطقة ع'],
+    approximateBuildingsCount: 330,
+    descriptionAr: 'المنطقة الغربية الجنوبية الهادئة، قريبة من مخرج طريق الواحات والدائري.',
   },
 ];
 
@@ -326,12 +408,29 @@ export const HADAYEK_LIFELINES: HadayekLifelineCategory[] = [
 // 🧮 Helper Functions & Routing Engines
 // =============================================================================
 
+function normalizeArabicText(str: string): string {
+  return (str || '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/هـ/g, 'ه')
+    .trim();
+}
+
 export function getHadayekZone(letterOrId: string): HadayekZone | undefined {
   if (!letterOrId) return undefined;
   const clean = letterOrId.trim().replace(/^منطقة\s+/, '');
-  return HADAYEK_ZONES.find(
-    (z) => z.letterAr === clean || z.id.toLowerCase() === clean.toLowerCase() || z.nameAr === clean
-  );
+  const norm = normalizeArabicText(clean);
+
+  return HADAYEK_ZONES.find((z) => {
+    const zNorm = normalizeArabicText(z.letterAr);
+    return (
+      z.letterAr === clean ||
+      zNorm === norm ||
+      z.id.toLowerCase() === clean.toLowerCase() ||
+      z.nameAr === clean ||
+      normalizeArabicText(z.nameAr) === norm
+    );
+  });
 }
 
 export function getHadayekGate(gateId: string): HadayekGate | undefined {
@@ -363,7 +462,11 @@ export function estimateBuildingCoordinates(
   if (district) {
     return { lat: district.centerLat, lng: district.centerLng };
   }
-  return { lat: 29.9680, lng: 31.0980 };
+  const zone = getHadayekZone(zoneLetter);
+  if (zone) {
+    return { lat: zone.centerLat, lng: zone.centerLng };
+  }
+  return { lat: 29.9675, lng: 31.1015 };
 }
 
 export function calculateDirectDistanceMeters(
