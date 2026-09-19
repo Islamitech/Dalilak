@@ -68,6 +68,10 @@
       "dest": "/api/sitemap"
     },
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
