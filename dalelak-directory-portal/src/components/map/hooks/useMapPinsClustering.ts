@@ -231,10 +231,10 @@ export const useMapPinsClustering = ({
           district.polygons.forEach((polyCoords) => {
             const polygon = window.L.polygon(polyCoords, {
               color: district.color,
-              weight: 2,
+              weight: 1.5,
               opacity: 0.85,
               fillColor: district.color,
-              fillOpacity: 0.18,
+              fillOpacity: 0.10,
               className: 'hadayek-district-polygon',
             });
 

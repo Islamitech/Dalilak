@@ -63,33 +63,25 @@ export const getTileLayerConfig = (type: MapTileLayerType) => {
   };
 
   switch (type) {
-    case 'google-hybrid':
-      return {
-        url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-        maxZoom: 20,
-        maxNativeZoom: 20,
-        subdomains: ['0', '1', '2', '3'],
-        attribution: 'Imagery © Google',
-        ...commonOptions,
-      };
-    case 'dalelak-clean':
-      return {
-        // CARTO Voyager: vibrant, modern, colorful streets, parks, water, and terrain with zero ad clutter
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        maxZoom: 20,
-        maxNativeZoom: 19,
-        subdomains: 'abcd',
-        attribution: '© خريطة دليلك الميدانية / CARTO / OpenStreetMap',
-        ...commonOptions,
-      };
     case 'google-streets':
-    default:
       return {
         url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
         maxZoom: 20,
         maxNativeZoom: 20,
         subdomains: ['0', '1', '2', '3'],
         attribution: 'Map data © Google',
+        ...commonOptions,
+      };
+    case 'google-hybrid':
+    case 'dalelak-clean':
+    default:
+      return {
+        // 🗺️ الخريطة المساحية التخطيطية الصفراء الصماء مع أرقام المباني والقطع بدقة
+        url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+        maxZoom: 20,
+        maxNativeZoom: 19,
+        subdomains: ['a', 'b', 'c'],
+        attribution: '© خريطة دليلك المساحية / OpenStreetMap contributors / Humanitarian OSM',
         ...commonOptions,
       };
   }

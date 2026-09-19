@@ -130,19 +130,18 @@ export const MapHeaderBar: React.FC<MapHeaderBarProps> = ({
             <ChevronDown className="w-3 h-3 text-indigo-400/80 absolute left-1.5 pointer-events-none" />
           </div>
 
-          {/* 🗺️ Tile Layer Dropdown (جعل نوع الخريطة سهم منسدل) */}
+          {/* 🗺️ Tile Layer Dropdown (خريطة دليلك المساحية المرقمة وشوارع جوجل) */}
           <div className="relative inline-flex items-center">
             <select
               value={tileLayer}
               onChange={(e) => switchTileLayer(e.target.value as MapTileLayerType)}
-              className="bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 font-bold text-[10px] sm:text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-slate-500 cursor-pointer appearance-none pl-5 pr-2 transition-colors"
-              title="نوع الخريطة (شوارع جوجل / قمر صناعي / خريطة دليلك)"
+              className="bg-slate-800/90 hover:bg-slate-700/90 border border-amber-500/30 text-amber-300 font-bold text-[10px] sm:text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-amber-400 cursor-pointer appearance-none pl-5 pr-2 transition-colors"
+              title="نوع الخريطة (خريطة دليلك المساحية بأرقام المباني / شوارع جوجل)"
             >
-              <option value="google-streets">📍 شوارع جوجل</option>
-              <option value="google-hybrid">🛰️ قمر صناعي</option>
-              <option value="dalelak-clean">🗺️ خريطة دليلك</option>
+              <option value="dalelak-clean">🗺️ خريطة دليلك المساحية (أرقام المباني)</option>
+              <option value="google-streets">📍 شوارع جوجل (Google Streets)</option>
             </select>
-            <ChevronDown className="w-3 h-3 text-slate-400 absolute left-1.5 pointer-events-none" />
+            <ChevronDown className="w-3 h-3 text-amber-400/80 absolute left-1.5 pointer-events-none" />
           </div>
         </div>
 

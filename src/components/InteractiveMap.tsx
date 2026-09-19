@@ -46,8 +46,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [viewBoundsVersion, setViewBoundsVersion] = useState<number>(0);
 
-  // High precision controls & Layer switcher (Default: Google Streets Vibrant Map)
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
+  // High precision controls & Layer switcher (Default: Dalelak Cadastral Numbered Map)
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
 

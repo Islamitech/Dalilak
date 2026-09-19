@@ -24,7 +24,7 @@ export const useMapInstance = ({
   const [currentLat, setCurrentLat] = useState<number>(lat);
   const [currentLng, setCurrentLng] = useState<number>(lng);
   const [zoomLevel, setZoomLevel] = useState<number>(initialZoom);
-  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('google-streets');
+  const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
   const leafletMapRef = useRef<any>(null);
@@ -57,15 +57,6 @@ export const useMapInstance = ({
     };
 
     switch (type) {
-      case 'google-hybrid':
-        return {
-          url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-          maxZoom: 20,
-          maxNativeZoom: 20,
-          subdomains: ['0', '1', '2', '3'],
-          attribution: 'Imagery © Google',
-          ...commonOptions,
-        };
       case 'google-streets':
         return {
           url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
@@ -75,14 +66,16 @@ export const useMapInstance = ({
           attribution: 'Map data © Google',
           ...commonOptions,
         };
+      case 'google-hybrid':
       case 'dalelak-clean':
       default:
+        // 🗺️ الخريطة المساحية التخطيطية الصفراء الصماء مع أرقام المباني والقطع بدقة
         return {
-          url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          maxZoom: 19,
+          url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+          maxZoom: 20,
           maxNativeZoom: 19,
           subdomains: ['a', 'b', 'c'],
-          attribution: '© خريطة دليلك الميدانية / OpenStreetMap contributors',
+          attribution: '© خريطة دليلك المساحية / OpenStreetMap contributors / Humanitarian OSM',
           ...commonOptions,
         };
     }
