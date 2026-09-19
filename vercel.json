@@ -65,11 +65,11 @@
   "routes": [
     {
       "src": "/sitemap.xml",
-      "dest": "/api/sitemap"
+      "dest": "/api/sitemap.ts"
     },
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/$1.ts"
     },
     {
       "handle": "filesystem"
