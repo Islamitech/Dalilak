@@ -1,3 +1,11 @@
+/**
+ * @file DocumentViewerModal.tsx
+ * @description Modal for viewing and verifying Merchant / Business legal compliance documents:
+ *  - Commercial Registration (السجل التجاري)
+ *  - Tax Card (البطاقة الضريبية)
+ *  - Operating License (رخصة مزاولة النشاط)
+ * Distinct from DocViewerModal.tsx which handles Representative KYC documents.
+ */
 import { OverlayLayer } from './ui/OverlayLayer';
 import React, { useState } from 'react';
 import { X, FileText, CheckCircle2, ZoomIn, ZoomOut, ShieldCheck } from 'lucide-react';

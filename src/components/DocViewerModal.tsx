@@ -1,3 +1,11 @@
+/**
+ * @file DocViewerModal.tsx
+ * @description Modal for viewing and generating Representative KYC documents:
+ *  - Field Letter (خطاب تكليف ميداني)
+ *  - Digital Badge (كارنيه المندوب الرقمي مع QR Code)
+ *  - Rep Contract (عقد تفويض المندوب)
+ * Distinct from DocumentViewerModal.tsx which handles Merchant Business legal documents.
+ */
 import React, { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { Representative } from '../types';

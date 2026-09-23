@@ -72,18 +72,52 @@
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     </noscript>
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+      /* Keep splash styling isolated from interactive application controls. */
+      #app-splash, #app-splash *::before, #app-splash *::after {
+        box-sizing: border-box;
+        border: 0 solid transparent;
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #app-splash:focus, #app-splash *:focus-visible {
+        outline: none !important;
+      }
+      #app-splash, #app-splash * {
+        border: 0 !important;
+        border-style: none !important;
+        outline: 0 !important;
+        outline-style: none !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+      }
+      #app-splash .splash-spinner {
+        border: 2.5px solid rgba(197,155,39,0.2) !important;
+        border-top-color: #c59b27 !important;
+        border-radius: 50% !important;
+        animation: dalelakSpin 0.9s linear infinite !important;
+      }
+      @keyframes dalelakPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes dalelakSpin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
-  <body class="font-['Cairo',sans-serif] antialiased selection:bg-amber-100 selection:text-amber-900" style="background-color: #f8fafc; margin: 0;">
+  <body class="font-['Cairo',sans-serif] antialiased selection:bg-amber-100 selection:text-amber-900" style="background-color: #f8fafc; margin: 0; border: none !important; outline: none !important;">
     <div id="root" role="application" aria-label="منظومة دليلك" data-readability-ignore="true" data-reader-skip="true">
-      <div id="app-splash" style="position: fixed; inset: 0; background-color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; font-family: 'Cairo', sans-serif; color: #0f172a; padding: 20px; box-sizing: border-box;">
-        <div style="position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center;">
-          <img src="/logo.png" alt="دليلك" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 25px rgba(197,155,39,0.25)); animation: dalelakPulse 2s ease-in-out infinite;" />
+      <div id="app-splash" style="position: fixed; inset: 0; background-color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; font-family: 'Cairo', sans-serif; color: #0f172a; padding: 20px; box-sizing: border-box; border: none !important; outline: none !important;">
+        <div style="position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; border: none !important; outline: none !important; background: transparent;">
+          <img src="/logo.png" alt="دليلك" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 25px rgba(197,155,39,0.25)); animation: dalelakPulse 2s ease-in-out infinite; border: none !important; outline: none !important;" />
         </div>
-        <div style="margin-top: 16px; text-align: center;">
-          <h1 style="font-size: 22px; font-weight: 900; color: #c59b27; margin: 0; letter-spacing: -0.5px;">دليلك</h1>
-          <p style="font-size: 11px; color: #64748b; font-weight: 700; margin: 5px 0 0 0;">المنظومة الرقمية الشاملة لإدارة وتوثيق الأنشطة والخدمات</p>
+        <div style="margin-top: 16px; text-align: center; border: none !important; outline: none !important; background: transparent;">
+          <h1 style="font-size: 22px; font-weight: 900; color: #c59b27; margin: 0; letter-spacing: -0.5px; border: none !important; outline: none !important;">دليلك</h1>
+          <p style="font-size: 11px; color: #64748b; font-weight: 700; margin: 5px 0 0 0; border: none !important; outline: none !important;">المنظومة الرقمية الشاملة لإدارة وتوثيق الأنشطة والخدمات</p>
         </div>
-        <div style="margin-top: 24px; width: 30px; height: 30px; border: 2.5px solid rgba(197,155,39,0.2); border-top-color: #c59b27; border-radius: 50%; animation: dalelakSpin 0.9s linear infinite;"></div>
+        <div class="splash-spinner" style="margin-top: 24px; width: 30px; height: 30px; border-radius: 50%;"></div>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
