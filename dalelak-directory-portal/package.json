@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "tsc --noEmit",
+    "test:map": "tsx src/tests/map_fixes.test.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -24,6 +26,7 @@
     "@types/react-dom": "^19.0.4",
     "@vercel/node": "^12.0.0",
     "tailwindcss": "^4.1.14",
+    "tsx": "^4.19.3",
     "typescript": "~5.8.2"
   }
 }

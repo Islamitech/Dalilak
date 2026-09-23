@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Luxury Golden Amber Gradient for Outer Rims & Map Pin -->
+    <linearGradient id="dalelakGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="25%" stop-color="#F59E0B" />
+      <stop offset="60%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+
+    <!-- Glowing Rim Gradient -->
+    <linearGradient id="dalelakGoldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#92400E" />
+    </linearGradient>
+
+    <!-- Polished Silver Platinum Gradient for Modern Buildings -->
+    <linearGradient id="dalelakPlatinum" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="35%" stop-color="#F1F5F9" />
+      <stop offset="70%" stop-color="#CBD5E1" />
+      <stop offset="100%" stop-color="#94A3B8" />
+    </linearGradient>
+
+    <!-- Secondary Silver Facade Tone -->
+    <linearGradient id="dalelakSilverTone" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E2E8F0" />
+      <stop offset="100%" stop-color="#64748B" />
+    </linearGradient>
+
+    <!-- Deep Obsidian Slate Background Gradient -->
+    <linearGradient id="dalelakDarkBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="50%" stop-color="#0B132B" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+
+    <filter id="goldDropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- 1. Deep Midnight Squircle Background -->
+  <rect x="16" y="16" width="480" height="480" rx="124" fill="url(#dalelakDarkBase)" />
+
+  <!-- Outer Thick Golden Rim -->
+  <rect x="16" y="16" width="480" height="480" rx="124" fill="none" stroke="url(#dalelakGold)" stroke-width="16" />
+
+  <!-- Inner Subtle Golden Accent Line -->
+  <rect x="30" y="30" width="452" height="452" rx="112" fill="none" stroke="url(#dalelakGoldGlow)" stroke-width="4" opacity="0.45" />
+
+  <!-- 2. Metallic Golden Map Location Pin -->
+  <g filter="url(#goldDropShadow)">
+    <!-- Pin Body Outer Shape -->
+    <path
+      d="M256 74 C166 74 102 138 102 226 C102 304 196 394 256 450 C316 394 410 304 410 226 C410 138 346 74 256 74 Z"
+      fill="url(#dalelakGold)"
+    />
+
+    <!-- Pin Inner Dark Circular Core -->
+    <circle cx="256" cy="214" r="92" fill="#0B132B" />
+    <circle cx="256" cy="214" r="92" fill="none" stroke="url(#dalelakGoldGlow)" stroke-width="5" opacity="0.5" />
+  </g>
+
+  <!-- 3. Modern Silver/Platinum Business Skyline & Arched Base -->
+  <g id="skyline-buildings">
+    <!-- Curved Horizon Arch Base -->
+    <path
+      d="M188 266 C224 252 288 252 324 266 L324 278 C288 264 224 264 188 278 Z"
+      fill="url(#dalelakPlatinum)"
+    />
+
+    <!-- Left Modern Building (Slanted Top) -->
+    <path
+      d="M198 260 L198 214 L224 196 L224 253 Z"
+      fill="url(#dalelakSilverTone)"
+    />
+    <!-- Left Building Highlight Line -->
+    <path
+      d="M224 196 L198 214"
+      stroke="#FFFFFF"
+      stroke-width="3.5"
+      stroke-linecap="round"
+    />
+
+    <!-- Center Skyscraper Tower (Tallest with Angled Crown) -->
+    <path
+      d="M232 251 L232 164 L260 142 L280 154 L280 252 Z"
+      fill="url(#dalelakPlatinum)"
+    />
+    <!-- Center Tower Crown Highlight -->
+    <path
+      d="M232 164 L260 142 L280 154"
+      stroke="#FFFFFF"
+      stroke-width="4.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+    <!-- Center Tower Facade Inset Line (Gives Architectural Depth) -->
+    <line x1="256" y1="160" x2="256" y2="249" stroke="#0B132B" stroke-width="3.5" opacity="0.75" />
+
+    <!-- Right Modern Building -->
+    <path
+      d="M288 253 L288 212 L314 220 L314 261 Z"
+      fill="url(#dalelakSilverTone)"
+    />
+    <!-- Right Building Roof Highlight -->
+    <path
+      d="M288 212 L314 220"
+      stroke="#FFFFFF"
+      stroke-width="3.5"
+      stroke-linecap="round"
+    />
+  </g>
+</svg>

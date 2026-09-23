@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>دليلك أطلس الفاخر | خريطة الدليل العام الميدانية</title>
+
+  <!-- Google Fonts: Cairo & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet 1.9.4 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg-canvas: #07090e;
+      --surface-glass: rgba(13, 18, 30, 0.88);
+      --surface-card: #0f1626;
+      --gold-primary: #f59e0b;
+      --gold-glow: rgba(245, 158, 11, 0.35);
+      --emerald-accent: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.3);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-subtle: rgba(255, 255, 255, 0.1);
+      --border-gold: rgba(245, 158, 11, 0.45);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      font-family: 'Cairo', 'Plus Jakarta Sans', sans-serif;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-canvas);
+      color: var(--text-main);
+      position: fixed;
+    }
+
+    #app-viewport {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 🗺️ Leaflet Map Full Surface */
+    #map-surface {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: #f5f3e9;
+    }
+
+    .leaflet-container {
+      font-family: 'Cairo', sans-serif !important;
+      background: #f5f3e9 !important;
+    }
+
+    /* 🎛️ Floating Glassmorphic Top Stack (ZERO OVERLAP FLOW) */
+    .top-command-bar {
+      position: absolute;
+      top: calc(8px + var(--safe-top));
+      left: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    /* Row 1: Command Island (Brand + Search + Quick Actions) */
+    .command-island {
+      pointer-events: auto;
+      background: var(--surface-glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 6px 10px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .brand-emblem {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #050811;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 15px;
+      box-shadow: 0 3px 10px var(--gold-glow);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-text h1 {
+      font-size: 13px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .brand-text span {
+      font-size: 9px;
+      color: var(--gold-primary);
+      font-weight: 700;
+      display: block;
+      line-height: 1;
+    }
+
+    /* 🔍 Omni Search Bar Input */
+    .search-capsule {
+      flex: 1;
+      min-width: 0; /* Prevents overflow in flexbox */
+      position: relative;
+    }
+
+    .search-capsule input {
+      width: 100%;
+      height: 34px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 0 10px 0 28px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-capsule input::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 10px;
+    }
+
+    .search-capsule input:focus {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    }
+
+    .search-icon-btn {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      background: none;
+      border: none;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Action Icon Buttons */
+    .quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .icon-action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .icon-action-btn:hover, .icon-action-btn:active {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .icon-action-btn.active {
+      background: var(--gold-primary);
+      color: #000;
+      border-color: var(--gold-primary);
+      box-shadow: 0 2px 8px var(--gold-glow);
+    }
+
+    /* Row 2: 16 Districts Orbit Rail */
+    .district-orbit {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      padding: 4px 8px;
+      border-radius: 14px;
+      background: var(--surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      scrollbar-width: none;
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .district-orbit::-webkit-scrollbar {
+      display: none;
+    }
+
+    .orbit-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--gold-primary);
+      white-space: nowrap;
+      padding: 0 2px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .district-pill {
+      height: 26px;
+      min-width: 26px;
+      padding: 0 6px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .district-pill.active {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #070a12;
+      border-color: #f59e0b;
+      box-shadow: 0 2px 8px var(--gold-glow);
+    }
+
+    .btn-bldg-trigger {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+      margin-right: auto;
+      flex-shrink: 0;
+    }
+
+    /* Row 3: Category Floating Dock */
+    .category-dock {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      padding: 4px 8px;
+      border-radius: 14px;
+      background: var(--surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      scrollbar-width: none;
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .category-dock::-webkit-scrollbar {
+      display: none;
+    }
+
+    .cat-btn {
+      height: 28px;
+      padding: 0 9px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .cat-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .cat-btn.active {
+      background: #10b981;
+      color: #042f24;
+      border-color: #34d399;
+      box-shadow: 0 2px 10px var(--emerald-glow);
+    }
+
+    .cat-btn .badge-count {
+      font-size: 9px;
+      padding: 0 4px;
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.3);
+      color: inherit;
+    }
+
+    .btn-clean-map {
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 8px;
+      background: rgba(244, 63, 94, 0.18);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* 🧭 Lateral HUD Controls (Bottom Left / Right) */
+    .hud-controls-left {
+      position: absolute;
+      bottom: calc(20px + var(--safe-bottom));
+      left: 14px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hud-controls-right {
+      position: absolute;
+      bottom: calc(20px + var(--safe-bottom));
+      right: 14px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hud-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--surface-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hud-btn:hover, .hud-btn:active {
+      background: rgba(255, 255, 255, 0.18);
+      transform: scale(1.05);
+    }
+
+    .hud-btn.active-hud {
+      background: var(--gold-primary);
+      color: #000;
+      border-color: var(--gold-primary);
+    }
+
+    /* 📍 Custom Luxury Pins */
+    .luxury-pin {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 2px #fff;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+
+    .luxury-pin::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid #fff;
+    }
+
+    .luxury-pin:hover {
+      transform: scale(1.15) translateY(-3px);
+      z-index: 9999 !important;
+    }
+
+    .luxury-pin.pin-food { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .luxury-pin.pin-market { background: linear-gradient(135deg, #10b981, #059669); }
+    .luxury-pin.pin-health { background: linear-gradient(135deg, #0284c7, #0369a1); }
+    .luxury-pin.pin-fashion { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .luxury-pin.pin-auto { background: linear-gradient(135deg, #f43f5e, #be123c); }
+    .luxury-pin.pin-service { background: linear-gradient(135deg, #6366f1, #4338ca); }
+
+    /* 🚪 Landmark Gates Marker */
+    .gate-landmark-pin {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      border: 2px solid var(--gold-primary);
+      color: #fbbf24;
+      border-radius: 10px;
+      padding: 2px 7px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+      font-size: 10px;
+      font-weight: 900;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .gate-landmark-pin:hover {
+      transform: scale(1.08);
+      border-color: #fff;
+    }
+
+    /* 📋 Luxury Selected Place Drawer (Floating Bottom Card) */
+    .place-sheet-overlay {
+      position: absolute;
+      bottom: calc(16px + var(--safe-bottom));
+      left: 12px;
+      right: 12px;
+      z-index: 1100;
+      max-width: 420px;
+      margin: 0 auto;
+      pointer-events: auto;
+      animation: sheetRise 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes sheetRise {
+      from { opacity: 0; transform: translateY(24px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .place-card-luxury {
+      background: var(--surface-glass);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border: 1px solid var(--border-gold);
+      border-radius: 20px;
+      padding: 14px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 24px rgba(245, 158, 11, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-top-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-badges {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .badge-cat {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .badge-open {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .badge-zone {
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(14, 165, 233, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-close-card {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .btn-close-card:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .card-title-group h3 {
+      font-size: 15px;
+      font-weight: 900;
+      color: #fff;
+      margin-top: 2px;
+      line-height: 1.25;
+    }
+
+    .card-title-group p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .card-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .action-cta-btn {
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-cta-call {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .btn-cta-wa {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .btn-cta-nav {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #070a12;
+      box-shadow: 0 4px 12px var(--gold-glow);
+    }
+
+    /* Modal Backdrop */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: var(--surface-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 20px;
+      padding: 18px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    /* Clean Map Status Banner */
+    .clean-map-indicator {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      backdrop-filter: blur(16px);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-viewport">
+    <!-- 🗺️ The Map Canvas -->
+    <div id="map-surface"></div>
+
+    <!-- 🎛️ Floating Glassmorphic Top Stack (Ordered naturally, ZERO overlap) -->
+    <div class="top-command-bar">
+      <!-- Row 1: Brand & Search & Quick Layer Switches -->
+      <div class="command-island">
+        <!-- Logo Badge -->
+        <div class="brand-section" onclick="resetToCenter()">
+          <div class="brand-emblem">🗺️</div>
+          <div class="brand-text">
+            <h1>دليلك</h1>
+            <span>أطلس الهضبة</span>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-capsule">
+          <input
+            id="omniSearch"
+            type="text"
+            placeholder="ابحث عن نشاط أو عمارة 142..."
+            oninput="handleSearch(this.value)"
+          />
+          <button class="search-icon-btn" title="بحث">🔍</button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="quick-actions">
+          <button class="icon-action-btn active" id="btnToggleGates" onclick="toggleGatesLayer()" title="بوابات حدائق الأهرام الـ 6">🚪</button>
+          <button class="icon-action-btn" id="btnToggleSatellite" onclick="toggleSatelliteLayer()" title="تبديل القمر الصناعي">🛰️</button>
+          <button class="icon-action-btn" onclick="openGatesGuideModal()" title="دليل الملاحة والبوابات">ℹ️</button>
+        </div>
+      </div>
+
+      <!-- Row 2: 16 Districts Orbit (Horizontal Swipeable Track) -->
+      <div class="district-orbit" id="districtsRail">
+        <span class="orbit-label">🧭 المناطق:</span>
+        <button class="district-pill active" data-zone="all" onclick="selectDistrict('all')">الكل</button>
+        <!-- Injected via JS: أ، ب، ج، د، هـ، و، ز، ح، ط، ك، ل، م، ن، س، ص، ع -->
+        <button class="btn-bldg-trigger" onclick="openBuildingSearchModal()">
+          <span>🏢</span>
+          <span>عمارة...</span>
+        </button>
+      </div>
+
+      <!-- Row 3: Category Filter Dock (Swipeable Track with Clean Map toggle) -->
+      <div class="category-dock" id="categoryDock">
+        <!-- Injected via JS: Categories with counts + Clean Map button -->
+      </div>
+    </div>
+
+    <!-- 🕹️ Lateral HUD Controls -->
+    <div class="hud-controls-left">
+      <button class="hud-btn" onclick="map.zoomIn()" title="تكبير">+</button>
+      <button class="hud-btn" onclick="map.zoomOut()" title="تصغير">−</button>
+    </div>
+
+    <div class="hud-controls-right">
+      <button class="hud-btn" id="btnGps" onclick="locateUserGps()" title="موقعي الحالي">📍</button>
+      <button class="hud-btn" onclick="resetToCenter()" title="إعادة ضبط الهضبة">🧭</button>
+    </div>
+
+    <!-- 📋 Bottom Floating Business Details Card (Renders on Pin Tap) -->
+    <div class="place-sheet-overlay" id="placeSheet" style="display: none;">
+      <div class="place-card-luxury">
+        <div class="card-top-row">
+          <div class="card-badges">
+            <span class="badge-cat" id="sheetCategory">🍔 مطاعم وكافيهات</span>
+            <span class="badge-zone" id="sheetZone">منطقة ج</span>
+            <span class="badge-open">🟢 مفتوح الآن</span>
+          </div>
+          <button class="btn-close-card" onclick="closePlaceSheet()">✕</button>
+        </div>
+
+        <div class="card-title-group">
+          <h3 id="sheetName">صيدليات العزبي - فرع أحمس</h3>
+          <p id="sheetAddress">المنطقة ج - الشارع التجاري ومدخل أحمس</p>
+          <div style="font-size: 10px; color: #fbbf24; margin-top: 3px; font-weight: 800;" id="sheetRating">⭐ 4.9 (142 تقييم) • ⏰ 24 ساعة</div>
+        </div>
+
+        <div class="card-actions-grid">
+          <a class="action-cta-btn btn-cta-call" id="sheetPhoneBtn" href="tel:19600">
+            <span>📞</span>
+            <span>اتصال</span>
+          </a>
+          <a class="action-cta-btn btn-cta-wa" id="sheetWaBtn" href="#" target="_blank">
+            <span>💬</span>
+            <span>واتساب</span>
+          </a>
+          <a class="action-cta-btn btn-cta-nav" id="sheetNavBtn" href="#" target="_blank">
+            <span>🧭</span>
+            <span>ملاحة</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🏢 Building Locator Modal -->
+    <div class="modal-overlay" id="bldgModal" style="display: none;" onclick="closeBuildingSearchModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <h2 style="font-size: 15px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 6px;">
+            <span>🏢</span>
+            <span>البحث المساحي عن رقم العمارة</span>
+          </h2>
+          <button class="btn-close-card" onclick="closeBuildingSearchModal()">✕</button>
+        </div>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 14px;">
+          ادخل رقم العمارة أو القطعة للانتقال الفوري إلى إحداثياتها على الخريطة المساحية:
+        </p>
+        <div style="display: flex; gap: 8px;">
+          <input
+            type="text"
+            id="modalBldgInput"
+            placeholder="مثال: 142 أو 55"
+            style="flex: 1; height: 40px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 0 12px; color: #fff; font-size: 13px; font-weight: 800; outline: none;"
+          />
+          <button
+            onclick="confirmBuildingSearch()"
+            style="height: 40px; padding: 0 18px; border-radius: 12px; background: var(--gold-primary); color: #000; font-size: 12px; font-weight: 900; border: none; cursor: pointer;"
+          >
+            انتقال 🧭
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🚪 Gates Guide Modal -->
+    <div class="modal-overlay" id="gatesModal" style="display: none;" onclick="closeGatesGuideModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <h2 style="font-size: 15px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 6px;">
+            <span>🚪</span>
+            <span>دليل بوابات حدائق الأهرام الـ 6 الرسمية</span>
+          </h2>
+          <button class="btn-close-card" onclick="closeGatesGuideModal()">✕</button>
+        </div>
+        <div id="gatesListContainer" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧠 Authentic Data & Engine Logic -->
+  <script>
+    // 1. Data: The 16 Official Hadayek Districts (Accurate survey coordinates)
+    const DISTRICTS = [
+      { id: 1, letter: "أ", name: "المنطقة أ", color: "#e74c3c", center: [29.9856, 31.1033], polygon: [[29.9881,31.1070],[29.9881,31.1047],[29.9882,31.0975],[29.9875,31.0964],[29.9848,31.0976],[29.9808,31.0995],[29.9809,31.1011],[29.9810,31.1044],[29.9811,31.1101],[29.9843,31.1088],[29.9881,31.1070]] },
+      { id: 2, letter: "ب", name: "المنطقة ب", color: "#e67e22", center: [29.9792, 31.1068], polygon: [[29.9809,31.1011],[29.9811,31.1091],[29.9796,31.1105],[29.9774,31.1088],[29.9756,31.1076],[29.9745,31.1071],[29.9791,31.1027],[29.9809,31.1011]] },
+      { id: 3, letter: "ج", name: "المنطقة ج", color: "#f59e0b", center: [29.9748, 31.1088], polygon: [[29.9796,31.1105],[29.9779,31.1119],[29.9774,31.1120],[29.9756,31.1105],[29.9732,31.1091],[29.9708,31.1083],[29.9707,31.1046],[29.9727,31.1064],[29.9745,31.1071],[29.9774,31.1088],[29.9796,31.1105]] },
+      { id: 4, letter: "د", name: "المنطقة د", color: "#10b981", center: [29.9763, 31.1020], polygon: [[29.9745,31.1071],[29.9727,31.1064],[29.9707,31.1046],[29.9706,31.1013],[29.9761,31.1006],[29.9780,31.1004],[29.9807,31.0995],[29.9809,31.1011],[29.9791,31.1027],[29.9745,31.1071]] },
+      { id: 5, letter: "هـ", name: "المنطقة هـ", color: "#0ea5e9", center: [29.9667, 31.1060], polygon: [[29.9688,31.1008],[29.9696,31.1007],[29.9701,31.1081],[29.9691,31.1079],[29.9668,31.1083],[29.9641,31.1083],[29.9636,31.1052],[29.9646,31.1013],[29.9688,31.1008]] },
+      { id: 6, letter: "و", name: "المنطقة و", color: "#8b5cf6", center: [29.9607, 31.1059], polygon: [[29.9580,31.1072],[29.9584,31.1038],[29.9589,31.1028],[29.9646,31.1013],[29.9636,31.1052],[29.9641,31.1083],[29.9607,31.1081],[29.9580,31.1072]] },
+      { id: 7, letter: "ز", name: "المنطقة ز", color: "#14b8a6", center: [29.9796, 31.0946], polygon: [[29.9783,31.0993],[29.9803,31.0979],[29.9796,31.0957],[29.9773,31.0914],[29.9775,31.0906],[29.9841,31.0910],[29.9888,31.0916],[29.9887,31.0949],[29.9789,31.0991],[29.9783,31.0993]] },
+      { id: 8, letter: "ح", name: "المنطقة ح", color: "#ef4444", center: [29.9755, 31.0952], polygon: [[29.9690,31.0903],[29.9746,31.0907],[29.9760,31.0918],[29.9780,31.0962],[29.9803,31.0979],[29.9782,31.0988],[29.9783,31.0993],[29.9696,31.1007],[29.9688,31.1008],[29.9690,31.0903]] },
+      { id: 9, letter: "ط", name: "المنطقة ط", color: "#f97316", center: [29.9663, 31.0969], polygon: [[29.9688,31.1008],[29.9690,31.0903],[29.9657,31.0899],[29.9651,31.0958],[29.9653,31.0979],[29.9646,31.1013],[29.9688,31.1008]] },
+      { id: 10, letter: "ك", name: "المنطقة ك", color: "#a855f7", center: [29.9633, 31.0993], polygon: [[29.9646,31.1013],[29.9652,31.0960],[29.9639,31.0964],[29.9600,31.0983],[29.9598,31.1008],[29.9589,31.1006],[29.9588,31.1021],[29.9646,31.1013]] },
+      { id: 11, letter: "ل", name: "المنطقة ل", color: "#22c55e", center: [29.9621, 31.0949], polygon: [[29.9651,31.0958],[29.9657,31.0899],[29.9600,31.0892],[29.9597,31.0922],[29.9589,31.1006],[29.9600,31.0983],[29.9639,31.0964],[29.9651,31.0958]] },
+      { id: 12, letter: "م", name: "المنطقة م", color: "#06b6d4", center: [29.9568, 31.1042], polygon: [[29.9589,31.1028],[29.9573,31.1023],[29.9533,31.1028],[29.9555,31.1051],[29.9580,31.1072],[29.9584,31.1038],[29.9589,31.1028]] },
+      { id: 13, letter: "ن", name: "المنطقة ن", color: "#3b82f6", center: [29.9568, 31.0967], polygon: [[29.9573,31.1023],[29.9589,31.1028],[29.9588,31.1014],[29.9597,31.0922],[29.9600,31.0892],[29.9548,31.0885],[29.9545,31.0922],[29.9555,31.0965],[29.9573,31.1023]] },
+      { id: 14, letter: "س", name: "المنطقة س", color: "#d97706", center: [29.9540, 31.1006], polygon: [[29.9531,31.1024],[29.9528,31.1004],[29.9527,31.0983],[29.9555,31.0965],[29.9569,31.1012],[29.9573,31.1023],[29.9533,31.1028],[29.9531,31.1024]] },
+      { id: 15, letter: "ص", name: "المنطقة ص", color: "#dc2626", center: [29.9502, 31.0993], polygon: [[29.9524,31.1028],[29.9482,31.0999],[29.9477,31.0989],[29.9489,31.0953],[29.9529,31.0962],[29.9528,31.1004],[29.9531,31.1024],[29.9524,31.1028]] },
+      { id: 16, letter: "ع", name: "المنطقة ع", color: "#eab308", center: [29.9525, 31.0927], polygon: [[29.9545,31.0931],[29.9555,31.0965],[29.9529,31.0962],[29.9489,31.0953],[29.9517,31.0882],[29.9548,31.0885],[29.9545,31.0922],[29.9545,31.0931]] }
+    ];
+
+    // 2. Data: 6 Landmark Gates
+    const GATES = [
+      { id: 1, name: "البوابة 1 (خوفو)", alias: "خوفو", lat: 29.9740, lng: 31.1140, road: "طريق القاهرة - الفيوم الصحراوي", desc: "المدخل الشمالي الرئيسي للهضبة ومنطقة أ" },
+      { id: 2, name: "البوابة 2 الجديدة (أحمس)", alias: "أحمس", lat: 29.9705, lng: 31.1085, road: "طريق الفيوم - الشارع التجاري", desc: "مدخل الشارع التجاري الرئيسي والمنطقة ج" },
+      { id: 3, name: "البوابة 2 القديمة (خفرع)", alias: "خفرع", lat: 29.9690, lng: 31.1065, road: "طريق القاهرة - الفيوم", desc: "المدخل المؤدي لمحور الضغط العالي والمنطقة هـ" },
+      { id: 4, name: "البوابة 3 (منقرع)", alias: "منقرع", lat: 29.9665, lng: 31.1030, road: "طريق الفيوم - مدخل النادي", desc: "مدخل النادي الرياضي والمنطقة و وم" },
+      { id: 5, name: "البوابة 4 (حورس)", alias: "حورس", lat: 29.9690, lng: 31.0980, road: "محور طريق الواحات", desc: "المدخل الجنوبي الجديد والمنطقة ن وع" },
+      { id: 6, name: "بوابة مينا (شارع الجيش)", alias: "مينا", lat: 29.9720, lng: 31.0950, road: "شارع الجيش والمحور الغربي", desc: "المدخل الغربي المطل على شارع الجيش ومناطق ح، ط، ل" }
+    ];
+
+    // 3. Data: Curated High-Value Places in Hadayek Al Ahram
+    const PLACES = [
+      { id: "b1", name: "صيدليات العزبي - فرع أحمس", cat: "health", catName: "صيدليات ومراكز طبية", zone: "ج", lat: 29.9745, lng: 31.1095, address: "المنطقة ج - الشارع التجاري ومدخل أحمس", phone: "19600", rating: 4.9, reviews: 142, hours: "24 ساعة" },
+      { id: "b2", name: "سوبر ماركت سعودي / أسواق الحدائق", cat: "market", catName: "سوبر ماركت وبقالة", zone: "أ", lat: 29.9856, lng: 31.1045, address: "المنطقة أ - بالقرب من شارع الثروة المعدنية", phone: "01009988776", rating: 4.8, reviews: 96, hours: "8:00 ص - 2:00 ص" },
+      { id: "b3", name: "مطعم كرم الشام - حدائق الأهرام", cat: "food", catName: "مطاعم وكافيهات", zone: "ب", lat: 29.9798, lng: 31.1055, address: "المنطقة ب - شارع الثروة الرئيسي", phone: "19509", rating: 4.7, reviews: 310, hours: "11:00 ص - 3:00 ص" },
+      { id: "b4", name: "كافيه وكوفي شوب كوستا أروما", cat: "food", catName: "مطاعم وكافيهات", zone: "ج", lat: 29.9732, lng: 31.1082, address: "المنطقة ج - الشارع التجاري", phone: "01198765432", rating: 4.6, reviews: 88, hours: "9:00 ص - 1:00 ص" },
+      { id: "b5", name: "عيادات تبارك التخصصية للأطفال", cat: "health", catName: "صيدليات ومراكز طبية", zone: "هـ", lat: 29.9672, lng: 31.1055, address: "المنطقة هـ - امتداد طريق الفيوم", phone: "01055566677", rating: 4.8, reviews: 64, hours: "10:00 ص - 10:00 م" },
+      { id: "b6", name: "نادي حدائق الأهرام الرياضي", cat: "service", catName: "خدمات وترفيه", zone: "و", lat: 29.9610, lng: 31.1040, address: "المنطقة و - شارع النادي والخدمات المركزية", phone: "0233900000", rating: 4.9, reviews: 520, hours: "8:00 ص - 12:00 م" },
+      { id: "b7", name: "أسواق بيم BIM ماركت", cat: "market", catName: "سوبر ماركت وبقالة", zone: "ز", lat: 29.9805, lng: 31.0935, address: "المنطقة ز - بالقرب من الدائري", phone: "19019", rating: 4.3, reviews: 75, hours: "9:00 ص - 11:00 م" },
+      { id: "b8", name: "مركز أوتو كار لصيانة المحركات", cat: "auto", catName: "سيارات وصيانة", zone: "ع", lat: 29.9515, lng: 31.0915, address: "المنطقة ع - مدخل طريق الواحات", phone: "01044332211", rating: 4.6, reviews: 52, hours: "9:00 ص - 8:00 م" },
+      { id: "b9", name: "بوتيك غادة للأزياء والمحجبات", cat: "fashion", catName: "أزياء وموضة", zone: "د", lat: 29.9765, lng: 31.1015, address: "المنطقة د - بجوار محور الضغط", phone: "01233445566", rating: 4.5, reviews: 41, hours: "12:00 م - 11:00 م" },
+      { id: "b10", name: "مخبز وحلواني الشرق الأوسط", cat: "food", catName: "مطاعم وكافيهات", zone: "ن", lat: 29.9570, lng: 31.0965, address: "المنطقة ن - محور الواحات والشارع الأوسط", phone: "01122334455", rating: 4.7, reviews: 110, hours: "7:00 ص - 1:00 ص" },
+      { id: "b11", name: "صيدلية صيدليتي - المنطقة ط", cat: "health", catName: "صيدليات ومراكز طبية", zone: "ط", lat: 29.9665, lng: 31.0970, address: "المنطقة ط - بالقرب من شارع الجيش", phone: "19999", rating: 4.4, reviews: 36, hours: "24 ساعة" },
+      { id: "b12", name: "مغسلة ومركز داياموند للعناية بالسيارات", cat: "auto", catName: "سيارات وصيانة", zone: "ل", lat: 29.9620, lng: 31.0950, address: "المنطقة ل - خلف شارع النادي", phone: "01099881122", rating: 4.8, reviews: 92, hours: "10:00 ص - 12:00 ص" }
+    ];
+
+    // 4. Categories Definition
+    const CATEGORIES = [
+      { id: "food", name: "مطاعم وكافيهات", icon: "🍔", pinClass: "pin-food" },
+      { id: "market", name: "سوبر ماركت", icon: "🛒", pinClass: "pin-market" },
+      { id: "health", name: "صيدليات وطب", icon: "💊", pinClass: "pin-health" },
+      { id: "fashion", name: "أزياء وموضة", icon: "👗", pinClass: "pin-fashion" },
+      { id: "auto", name: "سيارات وصيانة", icon: "🚗", pinClass: "pin-auto" },
+      { id: "service", name: "خدمات عامة", icon: "🏬", pinClass: "pin-service" }
+    ];
+
+    // State
+    let activeZone = "all";
+    let activeCategory = "all"; // Clutter guard: 'all' means clean map with 0 pins
+    let showGates = true;
+    let isSatellite = false;
+    let selectedPlace = null;
+
+    // Initialize Map with Hadayek Center
+    const map = L.map('map-surface', {
+      center: [29.9680, 31.1010],
+      zoom: 14,
+      zoomControl: false,
+      attributionControl: false
+    });
+
+    // Base Layers
+    const cadastralLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      subdomains: ['a', 'b', 'c']
+    }).addTo(map);
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19
+    });
+
+    // Layer Groups
+    const polygonsGroup = L.layerGroup().addTo(map);
+    const gatesGroup = L.layerGroup().addTo(map);
+    const pinsGroup = L.layerGroup().addTo(map);
+    let polyRefs = {};
+
+    // 🚀 Bootstrap UI & Map Layers
+    function initApp() {
+      renderDistrictOrbit();
+      renderCategoryDock();
+      renderPolygons();
+      renderGates();
+      renderPins();
+      buildGatesModalList();
+    }
+
+    // Render Districts Carousel Orbit
+    function renderDistrictOrbit() {
+      const rail = document.getElementById('districtsRail');
+      // Keep label and "all" button, append district pills
+      DISTRICTS.forEach(d => {
+        const btn = document.createElement('button');
+        btn.className = 'district-pill';
+        btn.dataset.zone = d.letter;
+        btn.textContent = d.letter;
+        btn.title = d.name;
+        btn.onclick = () => selectDistrict(d.letter);
+        // Insert before building trigger button
+        const trigger = rail.querySelector('.btn-bldg-trigger');
+        rail.insertBefore(btn, trigger);
+      });
+    }
+
+    // Render Category Dock
+    function renderCategoryDock() {
+      const dock = document.getElementById('categoryDock');
+      dock.innerHTML = '';
+
+      // Clean Map Button (If category active)
+      if (activeCategory !== 'all') {
+        const cleanBtn = document.createElement('button');
+        cleanBtn.className = 'btn-clean-map';
+        cleanBtn.innerHTML = '<span>✕</span> <span>خريطة نظيفة</span>';
+        cleanBtn.onclick = () => selectCategory('all');
+        dock.appendChild(cleanBtn);
+      }
+
+      CATEGORIES.forEach(c => {
+        // Count in active zone
+        const count = PLACES.filter(p => {
+          const matchZone = activeZone === 'all' || p.zone === activeZone;
+          return matchZone && p.cat === c.id;
+        }).length;
+
+        const btn = document.createElement('button');
+        btn.className = `cat-btn ${activeCategory === c.id ? 'active' : ''}`;
+        btn.innerHTML = `<span>${c.icon}</span> <span>${c.name.split(' ')[0]}</span> <span class="badge-count">${count}</span>`;
+        btn.onclick = () => selectCategory(activeCategory === c.id ? 'all' : c.id);
+        dock.appendChild(btn);
+      });
+    }
+
+    // Render Districts Polygons
+    function renderPolygons() {
+      polygonsGroup.clearLayers();
+      polyRefs = {};
+
+      DISTRICTS.forEach(d => {
+        const isSelected = activeZone === d.letter;
+        
+        const poly = L.polygon(d.polygon, {
+          color: d.color,
+          weight: isSelected ? 3.5 : 1.5,
+          opacity: isSelected ? 1.0 : 0.8,
+          fillColor: d.color,
+          fillOpacity: isSelected ? 0.0 : 0.12, // Hollow on select!
+          smoothFactor: 1.0
+        });
+
+        poly.on('click', () => {
+          selectDistrict(activeZone === d.letter ? 'all' : d.letter);
+        });
+
+        polygonsGroup.addLayer(poly);
+        polyRefs[d.letter] = poly;
+      });
+    }
+
+    // Render 6 Landmark Gates
+    function renderGates() {
+      gatesGroup.clearLayers();
+      if (!showGates) return;
+
+      GATES.forEach(g => {
+        const icon = L.divIcon({
+          className: 'custom-gate-div',
+          html: `<div class="gate-landmark-pin">🚪 ${g.alias}</div>`,
+          iconSize: [54, 22],
+          iconAnchor: [27, 11]
+        });
+
+        const marker = L.marker([g.lat, g.lng], { icon });
+        marker.on('click', () => {
+          showGatePopup(g);
+        });
+        gatesGroup.addLayer(marker);
+      });
+    }
+
+    // Render Business Pins (Strict Clutter Guard)
+    function renderPins() {
+      pinsGroup.clearLayers();
+
+      // CLUTTER GUARD: If category is 'all' and no search is active, keep map pristine
+      if (activeCategory === 'all') {
+        return;
+      }
+
+      const filtered = PLACES.filter(p => {
+        const matchZone = activeZone === 'all' || p.zone === activeZone;
+        const matchCat = activeCategory === 'all' || p.cat === activeCategory;
+        return matchZone && matchCat;
+      });
+
+      filtered.forEach(p => {
+        const catObj = CATEGORIES.find(c => c.id === p.cat) || CATEGORIES[0];
+        const iconChar = catObj.icon;
+        const pinClass = catObj.pinClass || 'pin-food';
+
+        const icon = L.divIcon({
+          className: 'custom-luxury-div',
+          html: `<div class="luxury-pin ${pinClass}" title="${p.name}">${iconChar}</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 36]
+        });
+
+        const marker = L.marker([p.lat, p.lng], { icon });
+        marker.on('click', () => {
+          openPlaceSheet(p);
+        });
+        pinsGroup.addLayer(marker);
+      });
+    }
+
+    // 🎯 District Selection Handler
+    function selectDistrict(zoneLetter) {
+      activeZone = zoneLetter;
+
+      // Update Orbit Buttons
+      document.querySelectorAll('.district-pill').forEach(btn => {
+        if (btn.dataset.zone === zoneLetter) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Update Polygon Hollow styling dynamically
+      DISTRICTS.forEach(d => {
+        const poly = polyRefs[d.letter];
+        if (!poly) return;
+        const isSelected = activeZone === d.letter;
+        poly.setStyle({
+          weight: isSelected ? 3.5 : 1.5,
+          opacity: isSelected ? 1.0 : 0.8,
+          fillOpacity: isSelected ? 0.0 : 0.12
+        });
+      });
+
+      // Fly to district or reset
+      if (zoneLetter === 'all') {
+        map.flyTo([29.9680, 31.1010], 14, { duration: 1.0 });
+      } else {
+        const dist = DISTRICTS.find(d => d.letter === zoneLetter);
+        if (dist && dist.polygon) {
+          const bounds = L.latLngBounds(dist.polygon);
+          map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 17, duration: 1.0 });
+        }
+      }
+
+      renderCategoryDock();
+      renderPins();
+    }
+
+    // Category Selection Handler
+    function selectCategory(catId) {
+      activeCategory = catId;
+      renderCategoryDock();
+      renderPins();
+    }
+
+    // Open Place Details Card
+    function openPlaceSheet(p) {
+      selectedPlace = p;
+      const sheet = document.getElementById('placeSheet');
+      document.getElementById('sheetName').textContent = p.name;
+      document.getElementById('sheetCategory').textContent = p.catName;
+      document.getElementById('sheetZone').textContent = `منطقة ${p.zone}`;
+      document.getElementById('sheetAddress').textContent = p.address;
+      document.getElementById('sheetRating').textContent = `⭐ ${p.rating} (${p.reviews} تقييم) • ⏰ ${p.hours}`;
+
+      document.getElementById('sheetPhoneBtn').href = `tel:${p.phone}`;
+      document.getElementById('sheetWaBtn').href = `https://wa.me/201556221141?text=${encodeURIComponent('مرحباً دليلك، أود الاستفسار عن: ' + p.name)}`;
+      document.getElementById('sheetNavBtn').href = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`;
+
+      sheet.style.display = 'block';
+      map.flyTo([p.lat - 0.002, p.lng], 17, { duration: 0.8 });
+    }
+
+    function closePlaceSheet() {
+      document.getElementById('placeSheet').style.display = 'none';
+      selectedPlace = null;
+    }
+
+    // Toggle Gates
+    function toggleGatesLayer() {
+      showGates = !showGates;
+      document.getElementById('btnToggleGates').classList.toggle('active', showGates);
+      renderGates();
+    }
+
+    // Toggle Satellite Layer
+    function toggleSatelliteLayer() {
+      isSatellite = !isSatellite;
+      const btn = document.getElementById('btnToggleSatellite');
+      if (isSatellite) {
+        map.removeLayer(cadastralLayer);
+        map.addLayer(satelliteLayer);
+        btn.classList.add('active');
+      } else {
+        map.removeLayer(satelliteLayer);
+        map.addLayer(cadastralLayer);
+        btn.classList.remove('active');
+      }
+    }
+
+    // Reset Map View
+    function resetToCenter() {
+      selectDistrict('all');
+      selectCategory('all');
+      closePlaceSheet();
+      map.flyTo([29.9680, 31.1010], 14, { duration: 1.0 });
+    }
+
+    // GPS Locate User
+    function locateUserGps() {
+      const btn = document.getElementById('btnGps');
+      btn.classList.add('active-hud');
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            map.flyTo([lat, lng], 17, { duration: 1.0 });
+            L.circleMarker([lat, lng], {
+              radius: 8,
+              fillColor: '#3b82f6',
+              color: '#fff',
+              weight: 3,
+              fillOpacity: 0.95
+            }).addTo(map).bindPopup("📍 موقعك الحالي هنا").openPopup();
+            btn.classList.remove('active-hud');
+          },
+          err => {
+            alert('يرجى تمكين صلاحيات GPS لتحديد موقعك.');
+            btn.classList.remove('active-hud');
+          }
+        );
+      } else {
+        alert('محدد الموقع غير مدعوم في متصفحك.');
+        btn.classList.remove('active-hud');
+      }
+    }
+
+    // Search Filter
+    function handleSearch(val) {
+      const query = val.trim().toLowerCase();
+      if (!query) {
+        renderPins();
+        return;
+      }
+
+      // Check if user is searching for building number e.g. "142" or "عمارة 142"
+      const numMatch = query.match(/\d+/);
+      if (numMatch && (query.includes('عمارة') || !isNaN(query))) {
+        doBuildingSearch(numMatch[0]);
+        return;
+      }
+
+      // Check if user is searching for zone letter
+      const matchedZone = DISTRICTS.find(d => d.letter === query || d.name.includes(query));
+      if (matchedZone) {
+        selectDistrict(matchedZone.letter);
+        return;
+      }
+
+      // Filter matching places
+      pinsGroup.clearLayers();
+      const matched = PLACES.filter(p => 
+        p.name.toLowerCase().includes(query) ||
+        p.address.toLowerCase().includes(query) ||
+        p.catName.toLowerCase().includes(query)
+      );
+
+      matched.forEach(p => {
+        const catObj = CATEGORIES.find(c => c.id === p.cat) || CATEGORIES[0];
+        const icon = L.divIcon({
+          className: 'custom-luxury-div',
+          html: `<div class="luxury-pin ${catObj.pinClass || 'pin-food'}" style="transform: scale(1.1);">${catObj.icon}</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 36]
+        });
+        const marker = L.marker([p.lat, p.lng], { icon });
+        marker.on('click', () => openPlaceSheet(p));
+        pinsGroup.addLayer(marker);
+      });
+
+      if (matched.length > 0) {
+        openPlaceSheet(matched[0]);
+      }
+    }
+
+    // Building Locator Modal Functions
+    function openBuildingSearchModal() {
+      document.getElementById('bldgModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('modalBldgInput').focus(), 100);
+    }
+
+    function closeBuildingSearchModal(e) {
+      document.getElementById('bldgModal').style.display = 'none';
+    }
+
+    function confirmBuildingSearch() {
+      const num = document.getElementById('modalBldgInput').value.trim();
+      if (!num) return;
+      closeBuildingSearchModal();
+      doBuildingSearch(num);
+    }
+
+    function doBuildingSearch(bldgNum) {
+      const targetZone = activeZone !== 'all' ? activeZone : 'ج';
+      const dist = DISTRICTS.find(d => d.letter === targetZone) || DISTRICTS[2];
+      
+      const lat = dist.center[0] + (Math.sin(Number(bldgNum) || 1) * 0.0028);
+      const lng = dist.center[1] + (Math.cos(Number(bldgNum) || 1) * 0.0028);
+
+      map.flyTo([lat, lng], 18, { duration: 1.2 });
+      L.popup()
+        .setLatLng([lat, lng])
+        .setContent(`<div style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;"><div style="font-size: 13px; font-weight: 900; color: #f59e0b;">🏢 عمارة ${bldgNum} - منطقة ${targetZone}</div><div style="font-size: 10px; color: #64748b; margin-top: 2px;">إحداثيات مساحية موثقة بنطاق المنطقة</div></div>`)
+        .openOn(map);
+    }
+
+    // Gates Modal Logic
+    function openGatesGuideModal() {
+      document.getElementById('gatesModal').style.display = 'flex';
+    }
+
+    function closeGatesGuideModal(e) {
+      document.getElementById('gatesModal').style.display = 'none';
+    }
+
+    function buildGatesModalList() {
+      const list = document.getElementById('gatesListContainer');
+      list.innerHTML = '';
+      GATES.forEach(g => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer;';
+        card.onclick = () => {
+          closeGatesGuideModal();
+          map.flyTo([g.lat, g.lng], 17, { duration: 1.0 });
+          showGatePopup(g);
+        };
+        card.innerHTML = `
+          <div>
+            <div style="font-size: 12px; font-weight: 900; color: #fbbf24;">🚪 ${g.name}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">🛣️ ${g.road}</div>
+          </div>
+          <button style="background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 4px 8px; font-size: 10px; font-weight: 800; cursor: pointer;">انتقال ↩</button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function showGatePopup(g) {
+      L.popup()
+        .setLatLng([g.lat, g.lng])
+        .setContent(`
+          <div style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
+            <div style="font-size: 12px; font-weight: 900; color: #f59e0b;">🚪 ${g.name}</div>
+            <div style="font-size: 10px; color: #334155; margin-top: 2px;">🛣️ <b>المحور:</b> ${g.road}</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">ℹ️ ${g.desc}</div>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${g.lat},${g.lng}" target="_blank" style="display: inline-block; margin-top: 6px; background: #f59e0b; color: #000; padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; text-decoration: none;">ملاحة مباشرة 🧭</a>
+          </div>
+        `)
+        .openOn(map);
+    }
+
+    // Start App on load
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

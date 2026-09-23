@@ -132,17 +132,43 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
         <div className="flex items-center gap-1.5 bg-slate-50 md:bg-transparent rounded-xl px-2.5 py-1 md:py-0 md:px-1 border border-slate-200/70 md:border-none min-w-0 md:min-w-[220px]">
           <MapPin className="w-3.5 h-3.5 text-amber-600 md:text-slate-400 shrink-0" />
           <select
-            value={selectedGov}
+            value={selectedCity && selectedCity !== 'all' ? selectedCity : selectedGov}
             onChange={(e) => {
-              onGovChange(e.target.value);
-              onCityChange('all');
+              const val = e.target.value;
+              if (val === 'all') {
+                onGovChange('all');
+                onCityChange('all');
+              } else if (val === 'حدائق الأهرام') {
+                onGovChange('الجيزة');
+                onCityChange('حدائق الأهرام');
+              } else if (
+                val === 'مدينة 6 أكتوبر' ||
+                val === 'مدينة الشيخ زايد' ||
+                val === 'الهرم' ||
+                val === 'فيصل'
+              ) {
+                onGovChange('الجيزة');
+                onCityChange(val);
+              } else {
+                onGovChange(val);
+                onCityChange('all');
+              }
             }}
             className="flex-1 bg-transparent py-1 text-xs font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer truncate"
-            aria-label="اختر المحافظة"
+            aria-label="اختر النطاق الجغرافي"
+            style={{ colorScheme: 'light' }}
           >
-            <option value="all">كل محافظات مصر</option>
-            {EGYPT_GOVERNORATES.map((gov) => (
-              <option key={gov} value={gov}>
+            <option value="حدائق الأهرام" className="bg-white text-slate-900 font-bold">حدائق الأهرام (الافتراضي)</option>
+            <option value="all" className="bg-white text-slate-900 font-bold">كل محافظات مصر</option>
+            <option value="الجيزة" className="bg-white text-slate-900 font-bold">محافظة الجيزة (الكل)</option>
+            <option value="مدينة 6 أكتوبر" className="bg-white text-slate-900 font-bold">مدينة 6 أكتوبر</option>
+            <option value="مدينة الشيخ زايد" className="bg-white text-slate-900 font-bold">مدينة الشيخ زايد</option>
+            <option value="الهرم" className="bg-white text-slate-900 font-bold">شارع الهرم</option>
+            <option value="فيصل" className="bg-white text-slate-900 font-bold">شارع فيصل</option>
+            <option value="القاهرة" className="bg-white text-slate-900 font-bold">محافظة القاهرة</option>
+            <option value="الإسكندرية" className="bg-white text-slate-900 font-bold">محافظة الإسكندرية</option>
+            {EGYPT_GOVERNORATES.filter((g) => g !== 'الجيزة' && g !== 'القاهرة' && g !== 'الإسكندرية').map((gov) => (
+              <option key={gov} value={gov} className="bg-white text-slate-900 font-bold">
                 {gov}
               </option>
             ))}

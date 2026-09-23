@@ -8,6 +8,7 @@ import {
   getGiftBarcodeWhatsAppUrl,
 } from '../../utils/directoryEnhancements';
 import { getPublicDirectoryUrl, getDisplayDirectoryUrl } from '../../utils/directoryUrl';
+import { SUPABASE_REST_BASE, SUPABASE_ANON_KEY } from '../../services/supabaseClient';
 import { PhotoWatermarkBadge } from '../PhotoWatermarkBadge';
 import {
   X,
@@ -112,10 +113,8 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
     let isMounted = true;
     async function fetchPhotosForBiz() {
       try {
-        const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
-        const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
         const res = await fetch(
-          `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?id=eq.${encodeURIComponent(business.id)}&select=id,photos,cover_photo`,
+          `${SUPABASE_REST_BASE}/businesses?id=eq.${encodeURIComponent(business.id)}&select=id,photos,cover_photo`,
           {
             headers: {
               apikey: SUPABASE_ANON_KEY,

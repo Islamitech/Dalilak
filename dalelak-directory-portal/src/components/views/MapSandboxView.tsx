@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Business } from '../../types';
-import { InteractiveMapTemp } from '../map_temp/InteractiveMapTemp';
-import { MOCK_SANDBOX_BUSINESSES, MOCK_PRESETS } from '../map_temp/mockData';
+import { InteractiveMap } from '../InteractiveMap';
+import { MOCK_SANDBOX_BUSINESSES, MOCK_PRESETS } from '../../data/mockData';
 import { HADAYEK_ZONES, getHadayekZone, estimateBuildingCoordinates } from '../../data/hadayekAtlasData';
 import {
   Compass,
@@ -214,14 +214,13 @@ export const MapSandboxView: React.FC<MapSandboxViewProps> = ({ onNavigate }) =>
 
       {/* 🗺️ Main Map Sandbox Container */}
       <div className="relative rounded-3xl overflow-hidden border border-emerald-500/30 bg-slate-900 shadow-2xl">
-        <InteractiveMapTemp
+        <InteractiveMap
           businesses={currentBusinesses}
           mode="view"
           targetBuilding={targetBuilding}
           showHadayekGates={true}
           selectedZone={activeZoneLetter}
           onSelectZone={(z) => setActiveZoneLetter(z)}
-          selectedBusiness={selectedMapBiz}
           onSelectBusiness={(biz) => setSelectedMapBiz(biz)}
           heightClass="h-[580px] sm:h-[680px]"
           defaultExpanded={false}

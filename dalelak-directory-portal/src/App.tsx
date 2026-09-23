@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Business } from './types';
 import { PublicShowcase } from './components/PublicShowcase';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { supabase } from './services/storage';
+import { supabase, SUPABASE_REST_BASE, SUPABASE_ANON_KEY } from './services/supabaseClient';
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
-const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
 // VERIFIED columns that exist in Supabase (whatsapp, google_maps_url, google_place_id, google_sync_status do NOT exist).
 // google_maps_url, google_place_id, google_sync_status are stored in the 'notes' JSON field.
 const FAST_BUSINESS_SELECT = 'id,name_ar,name_en,category,governorate,city,street,landmark,phone,secondary_phone,working_hours,description,lat,lng,package_id,package_name,package_price,verification_status,notes,created_at,cover_photo,photos';
-const SUPABASE_REST_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
-const SUPABASE_PHOTOS_URL = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/businesses?select=id,photos&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
+const SUPABASE_REST_URL = `${SUPABASE_REST_BASE}/businesses?select=${FAST_BUSINESS_SELECT}&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
+const SUPABASE_PHOTOS_URL = `${SUPABASE_REST_BASE}/businesses?select=id,photos&package_id=neq.pkg_interested_lead&verification_status=eq.verified&order=created_at.desc`;
 
 // 🛡️ BiDi Control Characters Regex (strips \u202E, \u202B, \u200E, etc.)
 const BIDI_CONTROL_REGEX = /[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069\uFEFF]/g;
@@ -59,6 +57,19 @@ export default function App() {
   });
   const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const overlay = document.getElementById('initial-loading-overlay');
+    if (!overlay) return;
+
+    // Smoothly fade out the initial loading overlay once React is mounted
+    const timer = window.setTimeout(() => {
+      overlay.classList.add('is-hidden');
+      window.setTimeout(() => overlay.remove(), 450);
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   function mapRawToBusiness(r: any): Business {
     let metaVideos: string[] = [];
     let metaGoogleSyncStatus = r.google_sync_status;
@@ -75,6 +86,9 @@ export default function App() {
     let metaViewsCount: number = Number(r.views_count ?? r.viewsCount ?? 0);
     let metaFavoriteCount: number = Number(r.favorite_count ?? r.favoriteCount ?? 0);
     let metaCustomDirectoryUrl: string | undefined = r.custom_directory_url || r.customDirectoryUrl;
+    let metaMainCategoryId: string | undefined = r.main_category_id || r.mainCategoryId;
+    let metaSubcategoryId: string | undefined = r.subcategory_id || r.subcategoryId;
+    let metaServices: string[] = Array.isArray(r.services) ? r.services.filter((item: unknown) => typeof item === 'string') : [];
     let metaPublishedStatus: 'published' | 'draft' | 'unlisted' | undefined = undefined;
 
     if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')) {
@@ -97,6 +111,11 @@ export default function App() {
           if (parsed.viewsCount !== undefined && !metaViewsCount) metaViewsCount = Number(parsed.viewsCount);
           if (parsed.favoriteCount !== undefined && !metaFavoriteCount) metaFavoriteCount = Number(parsed.favoriteCount);
           if (parsed.publishedStatus) metaPublishedStatus = parsed.publishedStatus;
+          if (parsed.mainCategoryId && !metaMainCategoryId) metaMainCategoryId = parsed.mainCategoryId;
+          if (parsed.subcategoryId && !metaSubcategoryId) metaSubcategoryId = parsed.subcategoryId;
+          if (Array.isArray(parsed.services) && metaServices.length === 0) {
+            metaServices = parsed.services.filter((item: unknown) => typeof item === 'string');
+          }
         }
       } catch {}
     }
@@ -160,6 +179,9 @@ export default function App() {
       nameAr: rawName,
       nameEn: (r.name_en || r.nameEn || '').replace(BIDI_CONTROL_REGEX, '').trim(),
       category: cleanCategory,
+      mainCategoryId: metaMainCategoryId,
+      subcategoryId: metaSubcategoryId,
+      services: metaServices,
       governorate: resolvedGov,
       city: rawCity,
       street: rawStreet,

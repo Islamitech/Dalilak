@@ -18,7 +18,7 @@ export const useMapState = ({
   const [mapCategoryFilter, setMapCategoryFilter] = useState<string>('all');
   const [onlyVerifiedFilter, setOnlyVerifiedFilter] = useState<boolean>(false);
   const [isMapFilterOpen, setIsMapFilterOpen] = useState<boolean>(false);
-  const [showGatesLayer, setShowGatesLayer] = useState<boolean>(true);
+  const [showGatesLayer, setShowGatesLayer] = useState<boolean>(false);
   const [showDistrictsOverlay, setShowDistrictsOverlay] = useState<boolean>(true);
   const [showTargetPin] = useState<boolean>(true);
   const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
@@ -26,6 +26,7 @@ export const useMapState = ({
   const [selectedGovFilter, setSelectedGovFilter] = useState<string>('حدائق الأهرام');
   const [selectedBiz, setSelectedBiz] = useState<Business | null>(null);
   const [centerReticleActive, setCenterReticleActive] = useState<boolean>(false);
+  const [isInHadayekScope, setIsInHadayekScope] = useState<boolean>(true);
 
   const handleGovChange = (
     govName: string,
@@ -70,6 +71,8 @@ export const useMapState = ({
     setSelectedBiz,
     centerReticleActive,
     setCenterReticleActive,
+    isInHadayekScope,
+    setIsInHadayekScope,
     handleGovChange,
     handleCopyCoords,
   };

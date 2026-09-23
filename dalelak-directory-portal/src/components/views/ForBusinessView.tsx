@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FREE_DIRECTORY_SERVICE, EGYPT_GOVERNORATES, PACKAGES } from '../../data/mockData';
+import { CATEGORY_TAXONOMY, getCategoryGroupById, getSubcategoryById } from '../../data/categoryTaxonomy';
 import {
   Store,
   CheckCircle2,
@@ -22,7 +23,10 @@ export const ForBusinessView: React.FC<ForBusinessViewProps> = ({ onNavigate }) 
   const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
   const [gov, setGov] = useState('الجيزة');
+  const [mainCategoryId, setMainCategoryId] = useState('all');
+  const [subcategoryId, setSubcategoryId] = useState('all');
   const [submitted, setSubmitted] = useState(false);
+  const selectedCategoryGroup = getCategoryGroupById(mainCategoryId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +38,8 @@ export const ForBusinessView: React.FC<ForBusinessViewProps> = ({ onNavigate }) 
 - اسم المسؤول: ${ownerName || 'صاحب النشاط'}
 - رقم الهاتف: ${phone}
 - المحافظة: ${gov}
+- الفئة الرئيسية: ${selectedCategoryGroup?.label || 'غير محددة'}
+- النوع الفرعي: ${getSubcategoryById(subcategoryId)?.label || 'غير محدد'}
 - الخدمة المطلوبة: إدراج مجاني (0 ج) بموقع Google Maps`;
 
     window.open(`https://wa.me/201556221141?text=${encodeURIComponent(text)}`, '_blank');
@@ -175,6 +181,38 @@ export const ForBusinessView: React.FC<ForBusinessViewProps> = ({ onNavigate }) 
                     <option key={g} value={g}>
                       {g}
                     </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 block">الفئة الرئيسية للنشاط</label>
+                <select
+                  value={mainCategoryId}
+                  onChange={(e) => {
+                    setMainCategoryId(e.target.value);
+                    setSubcategoryId('all');
+                  }}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="all">اختر الفئة الرئيسية</option>
+                  {CATEGORY_TAXONOMY.map((group) => (
+                    <option key={group.id} value={group.id}>{group.icon} {group.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 block">نوع النشاط أو الخدمة بالتحديد</label>
+                <select
+                  value={subcategoryId}
+                  onChange={(e) => setSubcategoryId(e.target.value)}
+                  disabled={!selectedCategoryGroup}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  <option value="all">{selectedCategoryGroup ? `كل ${selectedCategoryGroup.label}` : 'اختر الفئة الرئيسية أولاً'}</option>
+                  {selectedCategoryGroup?.children.map((child) => (
+                    <option key={child.id} value={child.id}>{child.label}</option>
                   ))}
                 </select>
               </div>

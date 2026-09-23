@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || 'https://xdqpbajymacpdccorjcj.supabase.co').trim();
-const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VJ8y1c53by7_sEn90hy8Pw_vO_K_b2x').trim();
+import { supabase } from './supabaseClient';
 export const BUCKET_NAME = 'business-media';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export function dataUrlToBlob(dataUrl: string): { blob: Blob; mimeType: string; ext: string } {
   const parts = dataUrl.split(';base64,');

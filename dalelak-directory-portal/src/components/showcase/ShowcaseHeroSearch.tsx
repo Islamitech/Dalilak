@@ -7,6 +7,7 @@ import {
   HADAYEK_ALAHRAM_ZONES,
   CATEGORY_GROUPS,
 } from '../../data/mockData';
+import { getAvailableCategoryGroupsInZone } from '../../utils/hadayekZoneHelper';
 import {
   Search,
   Sparkles,
@@ -147,6 +148,24 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
       setTypewriterIndex(FULL_HEADLINE.length);
     }
   }, [tourStep]);
+
+  const isHadayekZoneSelected = cityFilter === 'حدائق الأهرام' && hadayekZoneFilter !== 'all';
+  const scopedCategoryGroups = React.useMemo(() => {
+    if (!isHadayekZoneSelected || !publicBusinesses) return null;
+    return getAvailableCategoryGroupsInZone(publicBusinesses, hadayekZoneFilter);
+  }, [isHadayekZoneSelected, publicBusinesses, hadayekZoneFilter]);
+
+  // Auto-reset category filter if not available in the selected zone
+  useEffect(() => {
+    if (isHadayekZoneSelected && categoryFilter !== 'all' && scopedCategoryGroups) {
+      const exists = scopedCategoryGroups.some(
+        (grp) => grp.group === categoryFilter || grp.items.some((it) => it.name === categoryFilter)
+      );
+      if (!exists) {
+        setCategoryFilter('all');
+      }
+    }
+  }, [isHadayekZoneSelected, categoryFilter, scopedCategoryGroups, setCategoryFilter]);
 
   const activeFiltersCount = [
     govFilter !== 'all',
@@ -381,17 +400,44 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
               <div className="relative">
                 <MapPin className="w-3.5 h-3.5 text-amber-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <select
-                  value={govFilter}
+                  value={cityFilter && cityFilter !== 'all' ? cityFilter : govFilter}
                   onChange={(e) => {
-                    setGovFilter(e.target.value);
-                    setCityFilter('all');
-                    setHadayekZoneFilter('all');
+                    const val = e.target.value;
+                    if (val === 'all') {
+                      setGovFilter('all');
+                      setCityFilter('all');
+                      setHadayekZoneFilter('all');
+                    } else if (val === 'حدائق الأهرام') {
+                      setGovFilter('الجيزة');
+                      setCityFilter('حدائق الأهرام');
+                    } else if (
+                      val === 'مدينة 6 أكتوبر' ||
+                      val === 'مدينة الشيخ زايد' ||
+                      val === 'الهرم' ||
+                      val === 'فيصل'
+                    ) {
+                      setGovFilter('الجيزة');
+                      setCityFilter(val);
+                    } else {
+                      setGovFilter(val);
+                      setCityFilter('all');
+                      setHadayekZoneFilter('all');
+                    }
                   }}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl pr-8 pl-3 py-2.5 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 cursor-pointer transition-colors truncate"
                   title="تحديد المحافظة أو المنطقة"
+                  style={{ colorScheme: 'light' }}
                 >
+                  <option value="حدائق الأهرام">حدائق الأهرام (الافتراضي)</option>
                   <option value="all">كل المحافظات</option>
-                  {EGYPT_GOVERNORATES.map((g) => (
+                  <option value="الجيزة">الجيزة (كامل المحافظة)</option>
+                  <option value="مدينة 6 أكتوبر">مدينة 6 أكتوبر</option>
+                  <option value="مدينة الشيخ زايد">مدينة الشيخ زايد</option>
+                  <option value="الهرم">شارع الهرم</option>
+                  <option value="فيصل">شارع فيصل</option>
+                  <option value="القاهرة">القاهرة</option>
+                  <option value="الإسكندرية">الإسكندرية</option>
+                  {EGYPT_GOVERNORATES.filter((g) => g !== 'الجيزة' && g !== 'القاهرة' && g !== 'الإسكندرية').map((g) => (
                     <option key={g} value={g}>
                       {g}
                     </option>
@@ -495,18 +541,28 @@ export const ShowcaseHeroSearch: React.FC<ShowcaseHeroSearchProps> = ({
 
               {/* Full Category Group Filter */}
               <div>
-                <label className="block text-[10.5px] font-black text-[var(--text-muted)] mb-1">التصنيف الكامل:</label>
+                <label className="block text-[10.5px] font-black text-[var(--text-muted)] mb-1">
+                  {isHadayekZoneSelected ? `التصنيفات في ${hadayekZoneFilter}:` : 'التصنيف الكامل:'}
+                </label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="w-full bg-[var(--input-bg)] border border-[var(--border-color)] rounded-xl px-2.5 py-2 text-xs font-bold text-[var(--text-primary)] focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="all">كل التصنيفات</option>
-                  {CATEGORY_GROUPS.map((grp) => (
-                    <option key={grp.group} value={grp.group}>
-                      {grp.icon} {grp.group}
-                    </option>
-                  ))}
+                  <option value="all">
+                    {isHadayekZoneSelected ? `كل تصنيفات ${hadayekZoneFilter}` : 'كل التصنيفات'}
+                  </option>
+                  {isHadayekZoneSelected && scopedCategoryGroups
+                    ? scopedCategoryGroups.map((grp) => (
+                        <option key={grp.group} value={grp.group}>
+                          {grp.icon} {grp.group} ({grp.totalCount})
+                        </option>
+                      ))
+                    : CATEGORY_GROUPS.map((grp) => (
+                        <option key={grp.group} value={grp.group}>
+                          {grp.icon} {grp.group}
+                        </option>
+                      ))}
                 </select>
               </div>
 

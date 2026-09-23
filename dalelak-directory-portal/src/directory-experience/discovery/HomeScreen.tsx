@@ -1,0 +1,15 @@
+import React from 'react';
+import { Compass, MapPin, ArrowLeft } from 'lucide-react';
+import { useDirectoryCatalog } from '../contracts/DirectoryCatalogProvider';
+import { CategoryIcon } from './CategoryIcon';
+import { PlaceCard, PlaceCardProps } from './PlaceCard';
+import { SearchForm } from './SearchForm';
+import { ScreenState } from '../design-system/ScreenState';
+import type { DirectoryPlace, DirectoryFilters, LocationState, ViewState } from '../contracts/directory';
+export interface DiscoveryProps { places:readonly DirectoryPlace[];filters:DirectoryFilters;onChange:(patch:Partial<DirectoryFilters>)=>void;onNavigate:(path:string)=>void;location:LocationState;onLocate:()=>void;saved:string[];onSave:PlaceCardProps['onSave'];onOpen:PlaceCardProps['onOpen'];onAction:PlaceCardProps['onAction'];state:ViewState;onReset:()=>void; }
+export function HomeScreen(p:DiscoveryProps) {
+  const catalog=useDirectoryCatalog();
+  return <><section className="directory-hero"><div className="directory-container"><div className="directory-hero-grid"><div><div className="directory-kicker"><Compass size={18}/>دليلك للأماكن والخدمات</div><h1>كل ما تحتاجه،<br/><span>أقرب مما تتخيّل.</span></h1><p>من قهوتك الصباحية إلى خدمة تحتاجها اليوم. اكتشف منطقتك، قارن اختياراتك، ووصل إلى المكان المناسب.</p></div><aside className="directory-hero-art"><MapPin size={32}/><h2>كل شارع،<br/>فيه اكتشاف جديد.</h2><p>استكشف مناطق حدائق الأهرام، واعرف البوابات والخدمات المحيطة.</p><button className="directory-button gold" onClick={()=>p.onNavigate('/map')}>افتح الخريطة<ArrowLeft size={17}/></button></aside></div><div className="directory-home-search"><SearchForm {...p} onSubmit={()=>p.onNavigate('/search')}/></div></div></section><section className="directory-container directory-section"><div className="directory-section-head"><div><h2>ماذا تبحث عنه اليوم؟</h2><p>خدمات يومك، في مكان واحد</p></div><button onClick={()=>p.onNavigate('/search')}>كل الأنشطة ←</button></div><div className="directory-categories">{catalog.categories.map(category=><button className="directory-category" key={category} onClick={()=>{p.onChange({category});p.onNavigate('/search');}}><CategoryIcon category={category}/>{category}</button>)}</div></section><section className="directory-container directory-section"><div className="directory-section-head"><div><div className="directory-kicker">اختيارات من الدليل</div><h2>وجهتك التالية تبدأ من هنا</h2><p>تعرّف على المكان، واحفظ ما يعجبك</p></div><button onClick={()=>p.onNavigate('/search')}>عرض الجميع ←</button></div><ScreenState state={p.state} onReset={p.onReset}><div className="directory-grid">{p.places.slice(0,6).map(place=><PlaceCard key={place.id} place={place} saved={p.saved.includes(place.id)} onSave={p.onSave} onOpen={p.onOpen} onAction={p.onAction}/>)}</div></ScreenState></section><section className="directory-container directory-section"><div className="directory-owner-banner"><div><h2>مكانك موجود. خلّي الناس توصله.</h2><p>أضف نشاطك وعرّف عملاء منطقتك بخدماتك.</p></div><button className="directory-button" onClick={()=>p.onNavigate('/for-business')}>أضف نشاطك<ArrowLeft size={17}/></button></div></section></>;
+}
+
+

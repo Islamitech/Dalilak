@@ -150,8 +150,11 @@ export const ShowcaseCardGrid: React.FC<ShowcaseCardGridProps> = ({
       {activeView === 'map' && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-3 shadow-lg animate-fade-in">
           <InteractiveMap
-            businesses={filteredBusinesses}
+            businesses={businesses}
             mode="view"
+            initialShowBusinesses={false}
+            categoryFilter={categoryFilter}
+            onCategoryChange={setCategoryFilter}
             onSelectBusiness={(b) => handleOpenBusiness(b)}
             heightClass="h-[500px] sm:h-[600px]"
           />

@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark-disabled"]));
+
+:root, html, body {
+  color-scheme: light !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+select, option, input, button, textarea {
+  color-scheme: light !important;
+}
+
+option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
 @theme {
   --font-sans: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
   
@@ -471,6 +488,27 @@ textarea:focus-visible {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
+/* ============================================
+   Discovery Hero Art Card Radial Decoration
+   ============================================ */
+.hero-art-glow {
+  position: relative;
+  overflow: hidden;
+}
+.hero-art-glow::before {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 50%;
+  inset-inline-end: -45px;
+  top: -65px;
+  box-shadow: 0 0 0 35px rgba(245, 158, 11, 0.08), 0 0 0 70px rgba(245, 158, 11, 0.04);
+  pointer-events: none;
+}
+
+
 
 
 @media print {
@@ -576,6 +614,39 @@ img, picture, video {
 }
 
 /* ============================================
+   ⚡ High-Performance GPU Hardware Acceleration for Hadayek Map
+   Ensures 60 FPS panning with zero tile pop-in and zero layer jank
+   ============================================ */
+.leaflet-container {
+  touch-action: pan-x pan-y;
+  background-color: #f8fafc !important;
+}
+
+.leaflet-tile-pane,
+.leaflet-overlay-pane {
+  will-change: transform;
+}
+
+.leaflet-tile-container img {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.leaflet-overlay-pane svg {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.hadayek-spotlight-focus-mask,
+path.hadayek-spotlight-focus-mask {
+  pointer-events: none;
+  fill-rule: evenodd !important;
+}
+
+/* ============================================
    🗺️ Leaflet Vector & District Polygon Clean Styles
    Prevent any browser focus outlines or black bounding boxes
    ============================================ */
@@ -603,5 +674,211 @@ img, picture, video {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* ============================================
+   🗺️ Shahid3qar.com Exact District Map Styles
+   Identical to https://shahid3qar.com/map
+   ============================================ */
+.district-tooltip {
+  background: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  font-family: 'Cairo', sans-serif !important;
+  font-size: 13.5px !important;
+  padding: 6px 12px !important;
+  direction: rtl !important;
+  color: #1e293b !important;
+}
+
+/* 📍 District Letter Badge (Clean Circle with District Letter Only) */
+.district-letter-badge {
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  height: 38px;
+  width: 38px;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  user-select: none;
+}
+.district-letter-badge:hover {
+  transform: scale(1.18);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.district-letter-char {
+  font-family: 'Cairo', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 🗺️ Border On Demand: Selected District Boundary Styling */
+.selected-district-polygon {
+  stroke-dasharray: 6, 6;
+  animation: districtBorderPulse 3s infinite ease-in-out;
+}
+
+@keyframes districtBorderPulse {
+  0%, 100% {
+    stroke-opacity: 0.95;
+  }
+  50% {
+    stroke-opacity: 0.65;
+  }
+}
+
+.selected-district-badge-marker {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.district-popup .leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18) !important;
+  min-width: 170px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+}
+
+.district-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.district-popup .leaflet-popup-tip-container {
+  display: none !important;
+}
+
+.district-popup-inner {
+  direction: rtl;
+  font-family: 'Cairo', sans-serif;
+  padding: 14px 16px 12px;
+  text-align: center;
+}
+
+.district-popup-name {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.district-popup-count {
+  margin-bottom: 10px;
+}
+
+.district-popup-num {
+  color: #0d1f3c;
+  display: block;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.district-popup-label {
+  color: #6b7c93;
+  font-size: 12px;
+}
+
+.district-popup-btn {
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  direction: rtl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Cairo', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 12px;
+  transition: opacity 0.2s;
+  width: 100%;
+}
+
+.district-popup-btn:hover {
+  opacity: 0.88;
+}
+
+/* 🗺️ Hadayek Districts Plan & Zone Badges - Zero Jitter Guarantee */
+.hadayek-zone-letter-marker,
+.hadayek-zone-letter-marker * {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* 🏷️ Map Activity Card Pins & Interactive Cluster Pins */
+.custom-biz-pin {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.custom-biz-pin .activity-card-pin {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+}
+
+.custom-biz-pin:hover .activity-card-pin {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.custom-district-cluster-pin {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.custom-district-cluster-pin .district-cluster-pin {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
+}
+
+.custom-district-cluster-pin:hover .district-cluster-pin {
+  transform: translateY(-3px) scale(1.06);
+  filter: brightness(1.15);
+}
+
+@keyframes burstCardScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.35) translateY(14px);
+  }
+  70% {
+    transform: scale(1.05) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-in .activity-card-pin {
+  animation: burstCardScaleIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+@keyframes bounceSubtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-bounce-subtle .district-cluster-pin {
+  animation: bounceSubtle 2.4s ease-in-out infinite;
+}
+
+
+
 
 

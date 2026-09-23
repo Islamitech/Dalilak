@@ -57,46 +57,125 @@
     <!-- Optimized Google Fonts with font-display: swap -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" media="print" onload="this.media='all'">
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap">
-    </noscript>
-    <script type="module" crossorigin src="/assets/index-C7ed3b2d.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/react-vendor-DyJBaWXW.js">
+    <!-- Leaflet Map Engine Stylesheet & Script (Immediate Render) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      /* Universal Reset to eliminate any unwanted borders, boxes, or outlines */
+      *, *::before, *::after {
+        box-sizing: border-box;
+        border: 0 solid transparent;
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+      }
+      *:focus, *:focus-visible {
+        outline: none !important;
+      }
+      #initial-loading-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        background: #fffdf8;
+        color: #0f172a;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.45s ease, visibility 0.45s ease;
+        will-change: opacity, visibility;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border: none !important;
+        outline: none !important;
+      }
+      #initial-loading-overlay.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #initial-loading-overlay, #initial-loading-overlay * {
+        border: 0 !important;
+        border-style: none !important;
+        outline: 0 !important;
+        outline-style: none !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+      }
+      .initial-loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+        border: none !important;
+        outline: none !important;
+      }
+      .initial-loading-logo {
+        display: block;
+        width: 88px;
+        height: 88px;
+        aspect-ratio: 1;
+        border: 0 !important;
+        outline: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        object-fit: contain;
+        animation: initial-logo-settle 2.4s ease-in-out infinite;
+      }
+      .initial-loading-label {
+        color: #475569;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        border: none !important;
+        outline: none !important;
+      }
+      @keyframes initial-logo-settle {
+        0%, 100% { transform: translateY(2px) scale(0.98); opacity: 0.9; }
+        50% { transform: translateY(0) scale(1); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .initial-loading-logo { animation: none; }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DmeG1Cr2.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-B9LBSGFJ.js">
     <link rel="modulepreload" crossorigin href="/assets/supabase-vendor-C5o0XR4z.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DSmt-6BU.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-3kreFxMN.css">
   </head>
-  <body class="bg-slate-50 text-slate-900 font-['Cairo',sans-serif] antialiased min-h-screen">
-    <div id="root" role="application" aria-label="بوابة دليلك التفاعلية" data-readability-ignore="true" data-reader-skip="true">
-      <!-- Critical Fast-Paint Shell for Instant Mobile FCP/LCP (<0.8s) -->
-      <div id="critical-portal-shell" style="min-height: 100vh; background-color: #f8fafc; font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;">
-        <!-- Navbar Skeleton -->
-        <header style="height: 64px; background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 10px; background: #c59b27; display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 900; font-size: 16px;">د</div>
-            <div>
-              <span style="font-size: 18px; font-weight: 900; color: #0f172a; line-height: 1;">دليلك</span>
-              <span style="display: block; font-size: 10px; font-weight: 700; color: #c59b27;">الدليل الميداني المعتمد</span>
-            </div>
-          </div>
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9;"></div>
-        </header>
-
-        <!-- Hero Section Shell -->
-        <div style="padding: 32px 16px 24px; text-align: center; max-width: 600px; margin: 0 auto;">
-          <div style="display: inline-block; background: rgba(197,155,39,0.1); border: 1px solid rgba(197,155,39,0.25); color: #92400e; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 9999px; margin-bottom: 14px;">
-            الدليل الميداني المعتمد في مصر
-          </div>
-          <h1 style="font-size: 24px; font-weight: 900; color: #0f172a; margin: 0 0 8px; line-height: 1.3;">
-            ابحث عن أي نشاط أو خدمة، وتواصل في ثوانٍ
-          </h1>
-          <p style="font-size: 12px; color: #64748b; font-weight: 600; margin: 0 auto 20px;">
-            عناوين دقيقة • أرقام تواصل مباشرة • مواقع معتمدة على خرائط Google
-          </p>
-          <div style="height: 52px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 16px; display: flex; align-items: center; padding: 0 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-            <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #94a3b8; margin-left: 10px;"></div>
-            <span style="color: #94a3b8; font-size: 13px; font-weight: 600;">ابحث بالاسم، الفئة، أو المنطقة...</span>
-          </div>
-        </div>
+  <body class="bg-slate-50 text-slate-900 font-['Cairo',sans-serif] antialiased min-h-screen" style="margin: 0; border: none !important; outline: none !important;">
+    <div id="root"></div>
+    <div id="initial-loading-overlay" role="status" aria-live="polite" aria-label="جاري تجهيز دليلك" style="border: none !important; outline: none !important;">
+      <div class="initial-loading-content" style="border: none !important; outline: none !important;">
+        <svg class="initial-loading-logo" viewBox="0 0 512 512" width="88" height="88" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;border:none !important;outline:none !important;background:transparent;filter:drop-shadow(0 4px 14px rgba(0,0,0,0.12));">
+          <defs>
+            <linearGradient id="loadGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FDE68A" />
+              <stop offset="25%" stop-color="#F59E0B" />
+              <stop offset="60%" stop-color="#D97706" />
+              <stop offset="100%" stop-color="#B45309" />
+            </linearGradient>
+            <linearGradient id="loadDarkBase" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#111827" />
+              <stop offset="50%" stop-color="#0B132B" />
+              <stop offset="100%" stop-color="#030712" />
+            </linearGradient>
+            <linearGradient id="loadPlat" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF" />
+              <stop offset="35%" stop-color="#F1F5F9" />
+              <stop offset="100%" stop-color="#94A3B8" />
+            </linearGradient>
+          </defs>
+          <rect x="16" y="16" width="480" height="480" rx="124" fill="url(#loadDarkBase)" />
+          <rect x="16" y="16" width="480" height="480" rx="124" fill="none" stroke="url(#loadGold)" stroke-width="16" />
+          <path d="M256 74 C166 74 102 138 102 226 C102 304 196 394 256 450 C316 394 410 304 410 226 C410 138 346 74 256 74 Z" fill="url(#loadGold)" />
+          <circle cx="256" cy="214" r="92" fill="#0B132B" />
+          <path d="M188 266 C224 252 288 252 324 266 L324 278 C288 264 224 264 188 278 Z" fill="url(#loadPlat)" />
+          <path d="M198 260 L198 214 L224 196 L224 253 Z" fill="#CBD5E1" />
+          <path d="M232 251 L232 164 L260 142 L280 154 L280 252 Z" fill="url(#loadPlat)" />
+          <path d="M288 253 L288 212 L314 220 L314 261 Z" fill="#CBD5E1" />
+        </svg>
+        <span class="initial-loading-label" style="border: none !important; outline: none !important;">جاري تجهيز دليلك</span>
       </div>
     </div>
   </body>

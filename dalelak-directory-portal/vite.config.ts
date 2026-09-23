@@ -4,6 +4,12 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   base: '/',
+  server: {
+    port: 3000,
+  },
+  preview: {
+    port: 3000,
+  },
   plugins: [react(), tailwindcss()],
   build: {
     sourcemap: false,

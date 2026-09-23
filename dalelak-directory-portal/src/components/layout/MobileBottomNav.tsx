@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Search, Map as MapIcon, Heart, PlusCircle } from 'lucide-react';
+import { Compass, Search, Map as MapIcon, Heart } from 'lucide-react';
 
 export interface MobileBottomNavProps {
   currentPath: string;
@@ -13,19 +13,26 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   favoritesCount = 0,
 }) => {
   const cleanRoute = currentPath.toLowerCase().split('?')[0];
+  const isSearchMode = typeof window !== 'undefined' && window.location.search.includes('mode=all');
 
   const items = [
+    {
+      path: '/search',
+      label: 'اكتشف',
+      icon: Compass,
+      isActive: (cleanRoute === '/search' || cleanRoute === '/discover') && !isSearchMode,
+    },
+    {
+      path: '/search?mode=all',
+      label: 'البحث',
+      icon: Search,
+      isActive: cleanRoute === '/search' && isSearchMode,
+    },
     {
       path: '/',
       label: 'الخريطة',
       icon: MapIcon,
       isActive: cleanRoute === '/' || cleanRoute === '/map',
-    },
-    {
-      path: '/search',
-      label: 'استكشف',
-      icon: Search,
-      isActive: cleanRoute === '/search',
     },
     {
       path: '/favorites',
@@ -34,24 +41,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
       badge: favoritesCount > 0 ? favoritesCount : undefined,
       isActive: cleanRoute === '/favorites',
     },
-    {
-      path: '/for-business',
-      label: 'أضف نشاطك',
-      icon: PlusCircle,
-      isActive: cleanRoute === '/for-business' || cleanRoute === '/add-business',
-      isHighlight: true,
-    },
   ];
 
   return (
-    <div
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-card)]/95 backdrop-blur-xl border-t border-[var(--border-color)] shadow-2xl transition-all"
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-2xl transition-all"
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 8px)',
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))',
         direction: 'rtl',
       }}
+      aria-label="التنقل على الهاتف"
     >
-      <div className="grid grid-cols-4 h-15 max-w-md mx-auto items-center px-2">
+      <div className="grid grid-cols-4 h-15 max-w-md mx-auto items-center px-2 gap-1">
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.isActive;
@@ -60,25 +61,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
               key={item.path}
               type="button"
               onClick={() => onNavigate(item.path)}
-              className={`relative flex flex-col items-center justify-center py-1 px-0.5 transition-all cursor-pointer select-none rounded-xl active:scale-90 ${
+              className={`relative flex flex-col items-center justify-center py-1.5 px-1 sm:px-2 transition-all cursor-pointer select-none rounded-xl active:scale-95 ${
                 active
-                  ? 'text-amber-600 dark:text-amber-400 font-black'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-bold'
+                  ? 'bg-amber-100/80 text-slate-950 font-extrabold shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800 font-medium'
               }`}
             >
-              {/* Active Indicator Top Pill */}
-              {active && (
-                <span className="absolute -top-1.5 w-6 h-1 bg-amber-500 rounded-full" />
-              )}
-
               <div className="relative">
                 <Icon
                   className={`w-5 h-5 transition-transform ${
                     active
-                      ? 'stroke-[2.5] scale-110 text-amber-600 dark:text-amber-400'
-                      : item.isHighlight
-                      ? 'text-amber-500'
-                      : 'text-slate-500 dark:text-slate-400'
+                      ? 'stroke-[2.2] text-slate-950'
+                      : 'text-slate-500'
                   }`}
                 />
                 {item.badge !== undefined && (
@@ -88,15 +82,17 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 )}
               </div>
 
-              <span className={`text-[10px] mt-0.5 tracking-tight truncate max-w-full ${
-                active ? 'font-black text-amber-700 dark:text-amber-400' : 'font-medium'
-              }`}>
+              <span
+                className={`text-[11px] mt-0.5 tracking-tight truncate max-w-full ${
+                  active ? 'font-extrabold text-slate-950' : 'font-medium'
+                }`}
+              >
                 {item.label}
               </span>
             </button>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 };

@@ -1,4 +1,4 @@
-import { getDistrictByLetter, HADAYEK_OFFICIAL_DISTRICTS } from './hadayekDistrictsGeoData';
+import { getDistrictByLetter, HADAYEK_OFFICIAL_DISTRICTS, isPointInPolygon } from './hadayekDistrictsGeoData';
 
 /**
  * 🗺️ Hadayek Atlas & Proximity Navigator Data Engine
@@ -469,7 +469,20 @@ export function estimateBuildingCoordinates(
   return { lat: 29.9675, lng: 31.1015 };
 }
 
-import buildingsDB from './hadayekBuildingsCoords.json';
+let cachedBuildingsDB: Record<string, Array<{ lat: number; lng: number }>> | null = null;
+
+async function getBuildingsDB(): Promise<Record<string, Array<{ lat: number; lng: number }>> | null> {
+  if (!cachedBuildingsDB) {
+    try {
+      const mod = await import('./hadayekBuildingsCoords.json');
+      cachedBuildingsDB = (mod as any).default || mod;
+    } catch (e) {
+      console.warn('[HadayekAtlas] Failed to load offline buildings DB dynamically:', e);
+      return null;
+    }
+  }
+  return cachedBuildingsDB;
+}
 
 // Helper: Ray-casting algorithm to check if a point is inside a polygon
 function pointInPolygon(point: [number, number], vs: [number, number][]) {
@@ -496,16 +509,35 @@ export async function searchBuildingCoordinatesExact(
   if (!numMatch) return null;
   const cleanNum = numMatch[0];
 
-  // 1. FAST LOCAL DATABASE LOOKUP (O(1) Offline Background DB)
+  // 1. FAST LOCAL DATABASE LOOKUP (O(1) Offline Background DB - Lazy Loaded)
+  const buildingsDB = await getBuildingsDB();
   if (buildingsDB && (buildingsDB as any)[cleanNum]) {
-    const records = (buildingsDB as any)[cleanNum];
-    // Check which record actually falls inside this zone's polygon
-    if (district && district.polygons && district.polygons[0]) {
+    const records = (buildingsDB as any)[cleanNum] as Array<{ lat: number; lng: number }>;
+    if (district && district.polygons) {
+      // Step A: Check which record actually falls inside this zone's polygon rings
       for (const rec of records) {
-        if (pointInPolygon([rec.lat, rec.lng], district.polygons[0])) {
-          return { lat: rec.lat, lng: rec.lng };
+        for (const poly of district.polygons) {
+          if (isPointInPolygon(rec.lat, rec.lng, poly)) {
+            return { lat: rec.lat, lng: rec.lng };
+          }
         }
       }
+
+      // Step B: Fallback if cadastral point lies slightly on boundary - pick record closest to district center
+      let closestRec: { lat: number; lng: number } | null = null;
+      let minDistance = Infinity;
+      for (const rec of records) {
+        const d = calculateDirectDistanceMeters(rec.lat, rec.lng, district.centerLat, district.centerLng);
+        if (d < 1200 && d < minDistance) {
+          minDistance = d;
+          closestRec = { lat: rec.lat, lng: rec.lng };
+        }
+      }
+      if (closestRec) {
+        return closestRec;
+      }
+    } else if (records.length === 1) {
+      return { lat: records[0].lat, lng: records[0].lng };
     }
   }
 

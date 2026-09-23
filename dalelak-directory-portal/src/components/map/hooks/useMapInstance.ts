@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { LocationAddressData, fetchLocationAddress } from '../../../utils/geocoding';
 import { MapTileLayerType } from '../constants/mapConstants';
+import { preloadHadayekTiles, cancelHadayekTilePreload, HADAYEK_BOUNDS_COORDS } from '../../../utils/hadayekTilePreloader';
+
+export const HADAYEK_BOUNDS: [[number, number], [number, number]] = [
+  HADAYEK_BOUNDS_COORDS.sw,
+  HADAYEK_BOUNDS_COORDS.ne,
+];
+
+export const HADAYEK_TILE_BOUNDS: [[number, number], [number, number]] = [
+  [29.9100, 31.0400],
+  [30.0250, 31.1550],
+];
 
 export interface UseMapInstanceProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -26,6 +37,7 @@ export const useMapInstance = ({
   const [zoomLevel, setZoomLevel] = useState<number>(initialZoom);
   const [tileLayer, setTileLayer] = useState<MapTileLayerType>('dalelak-clean');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [isMapReady, setIsMapReady] = useState<boolean>(false);
 
   const leafletMapRef = useRef<any>(null);
   const tileLayerRef = useRef<any>(null);
@@ -39,20 +51,39 @@ export const useMapInstance = ({
     lng,
     zoom: zoomLevel,
   });
+  const prevPropsCoordRef = useRef<{ lat: number; lng: number }>({ lat, lng });
 
+  // Only respond to prop coordinate changes if they actually changed from the outside
   useEffect(() => {
+    if (prevPropsCoordRef.current.lat === lat && prevPropsCoordRef.current.lng === lng) {
+      return;
+    }
+    prevPropsCoordRef.current = { lat, lng };
     setCurrentLat(lat);
     setCurrentLng(lng);
     liveCenterRef.current.lat = lat;
     liveCenterRef.current.lng = lng;
-  }, [lat, lng]);
 
-  // Tile layer URL resolver with high-performance tile caching options
+    if (leafletMapRef.current && isMapReady) {
+      try {
+        const cur = leafletMapRef.current.getCenter();
+        if (Math.abs(cur.lat - lat) > 0.0005 || Math.abs(cur.lng - lng) > 0.0005) {
+          if (mode === 'picker') {
+            leafletMapRef.current.flyTo([lat, lng], 17, { duration: 0.8 });
+          }
+        }
+      } catch {}
+    }
+  }, [lat, lng, isMapReady, mode]);
+
+  // Tile layer URL resolver with high-performance tile caching options strictly bounded to Hadayek
   const getTileLayerConfig = useCallback((type: MapTileLayerType) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     const commonOptions = {
-      keepBuffer: 8,
-      updateWhenIdle: false,
+      keepBuffer: isMobile ? 2 : 3,
+      updateWhenIdle: true,
       updateWhenZooming: false,
+      bounds: HADAYEK_TILE_BOUNDS,
       crossOrigin: true,
     };
 
@@ -67,6 +98,14 @@ export const useMapInstance = ({
           ...commonOptions,
         };
       case 'google-hybrid':
+        return {
+          url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+          maxZoom: 20,
+          maxNativeZoom: 20,
+          subdomains: ['0', '1', '2', '3'],
+          attribution: 'Map data © Google',
+          ...commonOptions,
+        };
       case 'dalelak-clean':
       default:
         // 🗺️ الخريطة المساحية التخطيطية الصفراء الصماء مع أرقام المباني والقطع بدقة
@@ -99,11 +138,15 @@ export const useMapInstance = ({
       keepBuffer: cfg.keepBuffer,
       updateWhenIdle: cfg.updateWhenIdle,
       updateWhenZooming: cfg.updateWhenZooming,
+      bounds: cfg.bounds,
       crossOrigin: cfg.crossOrigin,
     });
 
     newLayer.addTo(leafletMapRef.current);
     tileLayerRef.current = newLayer;
+
+    // Trigger pre-warming for the newly selected tile provider
+    preloadHadayekTiles(newType);
   }, [getTileLayerConfig]);
 
   // Move marker and trigger callback safely without shaking viewport
@@ -131,6 +174,11 @@ export const useMapInstance = ({
     [onLocationSelect]
   );
 
+  const updateSelectedPositionRef = useRef(updateSelectedPosition);
+  updateSelectedPositionRef.current = updateSelectedPosition;
+  const getTileLayerConfigRef = useRef(getTileLayerConfig);
+  getTileLayerConfigRef.current = getTileLayerConfig;
+
   // Initialize Map
   useEffect(() => {
     let isSubscribed = true;
@@ -145,19 +193,37 @@ export const useMapInstance = ({
       } catch {}
 
       const centerToUse = liveCenterRef.current || { lat: currentLat, lng: currentLng, zoom: zoomLevel };
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
       const map = window.L.map(containerRef.current, {
         center: [centerToUse.lat, centerToUse.lng],
         zoom: centerToUse.zoom || zoomLevel,
         zoomControl: false,
         attributionControl: false,
-        zoomSnap: 1,
-        zoomDelta: 1,
-        wheelPxPerZoomLevel: 60,
+        zoomSnap: 0.5,
+        zoomDelta: 0.5,
+        wheelPxPerZoomLevel: 80,
+        zoomAnimation: true,
+        fadeAnimation: true,
+        markerZoomAnimation: true,
+        inertia: true,
+        inertiaDeceleration: 3500,
+        inertiaMaxSpeed: 1600,
+        easeLinearity: 0.25,
         bounceAtZoomLimits: false,
-        maxBoundsViscosity: 1.0
+        maxBoundsViscosity: 0.75, // Natural elastic damping instead of rigid slam
       });
 
-      const cfg = getTileLayerConfig(tileLayer);
+      if (mode === 'view') {
+        map.setMaxBounds(HADAYEK_BOUNDS);
+        map.options.minZoom = isMobile ? 12.8 : 13.2;
+        map.options.maxZoom = 19.5;
+      } else {
+        map.options.minZoom = 6;
+        map.options.maxZoom = 19.5;
+      }
+
+      const cfg = getTileLayerConfigRef.current(tileLayer);
       const layer = window.L.tileLayer(cfg.url, {
         maxZoom: cfg.maxZoom,
         maxNativeZoom: cfg.maxNativeZoom,
@@ -166,22 +232,32 @@ export const useMapInstance = ({
         keepBuffer: cfg.keepBuffer,
         updateWhenIdle: cfg.updateWhenIdle,
         updateWhenZooming: cfg.updateWhenZooming,
+        bounds: cfg.bounds,
         crossOrigin: cfg.crossOrigin,
       }).addTo(map);
 
       tileLayerRef.current = layer;
       markersGroupRef.current = window.L.layerGroup().addTo(map);
       leafletMapRef.current = map;
+      setIsMapReady(true);
       if (containerRef.current) {
         (containerRef.current as any)._leaflet_map = map;
       }
 
-      // Automatically calibrate Hadayek Al-Ahram bounds on initial load (Gate 1 to Gate Horus, أ to ص)
-      if (mode === 'view' && !liveCenterRef.current) {
+      // 🚀 Background pre-warming of all Hadayek Al-Ahram tiles into cache
+      preloadHadayekTiles(tileLayer);
+
+      // Automatically calibrate Hadayek Al-Ahram bounds on initial load
+      if (mode === 'view') {
         try {
-          map.fitBounds([[29.9477, 31.0881], [29.9888, 31.1122]], { padding: [16, 16], maxZoom: 14 });
+          map.fitBounds(HADAYEK_BOUNDS, { padding: [16, 16], maxZoom: 14.5 });
         } catch {}
       }
+
+      // Stop ongoing programmatic transitions when the user drags the map
+      map.on('dragstart', () => {
+        try { map.stop(); } catch {}
+      });
 
       // Update zoom and center state on user navigation
       map.on('zoomend', () => {
@@ -210,7 +286,7 @@ export const useMapInstance = ({
       // Handle map click in picker mode
       map.on('click', (e: any) => {
         if (mode !== 'picker') return;
-        updateSelectedPosition(e.latlng.lat, e.latlng.lng, false);
+        updateSelectedPositionRef.current(e.latlng.lat, e.latlng.lng, false);
       });
     };
 
@@ -243,6 +319,8 @@ export const useMapInstance = ({
 
     return () => {
       isSubscribed = false;
+      cancelHadayekTilePreload();
+      setIsMapReady(false);
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
@@ -253,7 +331,19 @@ export const useMapInstance = ({
         } catch {}
       }
     };
-  }, [mode, isExpanded, getTileLayerConfig, updateSelectedPosition]);
+  }, [mode]);
+
+  // Handle container expansion/collapse without destroying Leaflet instance
+  useEffect(() => {
+    if (leafletMapRef.current && isMapReady) {
+      const timer = setTimeout(() => {
+        if (leafletMapRef.current) {
+          leafletMapRef.current.invalidateSize({ animate: false, pan: false });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isExpanded, isMapReady]);
 
   // Handle Resize & Fullscreen Invalidation (Zero Center Drift - commit 3471e21)
   useEffect(() => {
@@ -262,15 +352,7 @@ export const useMapInstance = ({
         if (containerRef.current && !containerRef.current.classList.contains('leaflet-container')) {
           containerRef.current.classList.add('leaflet-container');
         }
-        const targetCenter = liveCenterRef.current;
-        requestAnimationFrame(() => {
-          if (leafletMapRef.current) {
-            leafletMapRef.current.invalidateSize({ animate: false, pan: true });
-            if (targetCenter && typeof targetCenter.lat === 'number' && !isNaN(targetCenter.lat)) {
-              leafletMapRef.current.setView([targetCenter.lat, targetCenter.lng], targetCenter.zoom, { animate: false });
-            }
-          }
-        });
+        leafletMapRef.current.invalidateSize({ animate: false, pan: false });
       }
     };
 
@@ -285,21 +367,12 @@ export const useMapInstance = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    const t1 = setTimeout(handleResize, 30);
-    const t2 = setTimeout(handleResize, 100);
-    const t3 = setTimeout(handleResize, 250);
-    const t4 = setTimeout(handleResize, 450);
-
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
     };
-  }, [isExpanded, containerRef]);
+  }, [containerRef]);
 
   // Directional Pan Controls
   const handlePan = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -333,6 +406,7 @@ export const useMapInstance = ({
 
   return {
     leafletMapRef,
+    isMapReady,
     markersGroupRef,
     pickerMarkerRef,
     accuracyCircleRef,

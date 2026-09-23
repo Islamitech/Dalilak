@@ -1,0 +1,34 @@
+/* Brand values read from src/index.css. Scoped copy keeps production styles isolated. */
+.directory-app {
+  --d-ink:#0f172a; --d-muted:#64748b; --d-brand:#88640a; --d-brand-hover:#765509;
+  --d-gold:#c59b27; --d-paper:#f8fafc; --d-surface:#fff; --d-line:#e2e8f0;
+  --d-success:#047857; --d-error:#b91c1c;
+  --d-brand-subtle:#fefce8; --d-brand-border:#d4af37;
+}
+.directory-official-logo { width:48px; height:48px; object-fit:contain; flex-shrink:0; }
+.directory-app .directory-button { background:var(--d-gold); color:var(--d-ink); }
+.directory-app .directory-button:hover { background:var(--d-brand-border); }
+.directory-app .directory-button.secondary { background:white; color:var(--d-ink); }
+.directory-app .directory-button.secondary:hover { background:var(--d-paper); }
+.directory-app .directory-search-form button[type=submit] { background:var(--d-gold); color:var(--d-ink); }
+.directory-app .directory-kicker,.directory-app .directory-hero h1 span { color:#88640a; }
+.directory-app .directory-hero { background:var(--d-paper); }
+.directory-app .directory-hero-art { background:#0b132b; }
+.directory-app .directory-nav button[aria-current=page],.directory-app .directory-bottom-nav button[aria-current=page] { background:var(--d-brand-subtle); color:var(--d-ink); }
+.directory-app .directory-preview-bar { background:#0b132b; }
+.directory-app :is(button,a,input,select,textarea):focus-visible { outline-color:#926c09!important; }
+.directory-app .hm-canvas { background:#eef1f5; }
+.directory-app .hm-district { fill:#dce2e9; stroke:white; }
+.directory-app .hm-district:nth-child(3n+2) { fill:#e7ebef; }
+.directory-app .hm-district:nth-child(3n) { fill:#d1dae4; }
+.directory-app .hm-district.is-active { fill:#f4e6b6; stroke:var(--d-gold); }
+.directory-app .hm-place-pin { background:#0b132b; color:white; }
+.directory-app .hm-place-pin[aria-pressed=true] { background:var(--d-gold); color:var(--d-ink); box-shadow:0 0 0 6px #c59b2733; }
+.directory-app .hm-cluster { background:#0b132b; }
+.directory-app .hm-zone-label { color:#475569; }
+.directory-app .hm-card-media { background:#f3eedc; color:#88640a; }
+.directory-app .hm-card-category,.directory-app .hm-cards-back { color:#88640a; }
+.directory-app .hm-result-item:hover { background:var(--d-paper); }
+.directory-app .hm-result-item[aria-pressed=true] { background:var(--d-brand-subtle); border-color:var(--d-brand-border); }
+@media(max-width:767px) { .directory-official-logo { width:40px; height:40px; } }
+

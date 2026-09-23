@@ -10,11 +10,16 @@ import {
   SlidersHorizontal,
   Check,
 } from 'lucide-react';
-import { EGYPT_GOVERNORATES, CATEGORY_GROUPS, HADAYEK_ALAHRAM_ZONES, EGYPT_CITIES_BY_GOV } from '../../data/mockData';
+import { Business } from '../../types';
+import { EGYPT_GOVERNORATES, HADAYEK_ALAHRAM_ZONES, EGYPT_CITIES_BY_GOV } from '../../data/mockData';
+import { getBusinessesInZone } from '../../utils/hadayekZoneHelper';
+import { CATEGORY_TAXONOMY, getCategoryGroupById } from '../../data/categoryTaxonomy';
+import { classifyBusinessCategory } from '../../utils/categoryMatcher';
 
 export interface FilterDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  allBusinesses?: Business[];
   selectedGov: string;
   onGovChange: (gov: string) => void;
   selectedCity: string;
@@ -23,6 +28,8 @@ export interface FilterDrawerProps {
   onZoneChange: (zone: string) => void;
   categoryFilter: string;
   onCategoryChange: (cat: string) => void;
+  subcategoryFilter: string;
+  onSubcategoryChange: (cat: string) => void;
   sortBy: string;
   onSortChange: (sort: string) => void;
   openNowOnly: boolean;
@@ -38,6 +45,7 @@ export interface FilterDrawerProps {
 export const FilterDrawer: React.FC<FilterDrawerProps> = ({
   isOpen,
   onClose,
+  allBusinesses = [],
   selectedGov,
   onGovChange,
   selectedCity,
@@ -46,6 +54,8 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
   onZoneChange,
   categoryFilter,
   onCategoryChange,
+  subcategoryFilter,
+  onSubcategoryChange,
   sortBy,
   onSortChange,
   openNowOnly,
@@ -57,11 +67,46 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
   resultsCount,
   onResetAll,
 }) => {
-  if (!isOpen) return null;
-
   const isGiza = selectedGov === 'الجيزة';
   const isHadayek = selectedCity.includes('حدائق الأهرام');
   const availableCities = selectedGov && EGYPT_CITIES_BY_GOV[selectedGov] ? EGYPT_CITIES_BY_GOV[selectedGov] : [];
+
+  // 🧭 Dynamic Zone-Scoped Category Calculation
+  const isZoneScoped = isHadayek && selectedZone !== 'all';
+  const zoneBusinesses = React.useMemo(() => {
+    if (!isZoneScoped || !allBusinesses || allBusinesses.length === 0) return null;
+    return getBusinessesInZone(allBusinesses, selectedZone);
+  }, [allBusinesses, isZoneScoped, selectedZone]);
+
+  const categoryBusinesses = zoneBusinesses || allBusinesses;
+  const categoryCounts = React.useMemo(() => {
+    const groups = new Map<string, number>();
+    const children = new Map<string, number>();
+    for (const business of categoryBusinesses) {
+      const classification = classifyBusinessCategory(business);
+      groups.set(classification.mainCategoryId, (groups.get(classification.mainCategoryId) || 0) + 1);
+      if (classification.subcategoryId !== 'all') {
+        children.set(classification.subcategoryId, (children.get(classification.subcategoryId) || 0) + 1);
+      }
+    }
+    return { groups, children };
+  }, [categoryBusinesses]);
+
+  const selectedCategoryGroup = getCategoryGroupById(categoryFilter);
+
+  // Auto-reset category if previously selected category does not exist in the newly selected zone
+  React.useEffect(() => {
+    if (isZoneScoped && categoryFilter !== 'all') {
+      if ((categoryCounts.groups.get(categoryFilter) || 0) === 0) {
+        onCategoryChange('all');
+        onSubcategoryChange('all');
+      } else if (subcategoryFilter !== 'all' && (categoryCounts.children.get(subcategoryFilter) || 0) === 0) {
+        onSubcategoryChange('all');
+      }
+    }
+  }, [isZoneScoped, categoryFilter, subcategoryFilter, categoryCounts, onCategoryChange, onSubcategoryChange]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" style={{ direction: 'rtl' }}>
@@ -177,28 +222,73 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
 
             {/* 2. Category Filter (فئة النشاط) */}
             <div className="space-y-2 pt-3 border-t border-slate-100">
-              <h4 className="font-black text-slate-900 flex items-center gap-1.5 text-xs">
-                <Layers className="w-3.5 h-3.5 text-amber-600" />
-                <span>فئة النشاط والخدمة</span>
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-slate-900 flex items-center gap-1.5 text-xs">
+                  <Layers className="w-3.5 h-3.5 text-amber-600" />
+                  <span>فئة النشاط والخدمة</span>
+                </h4>
+                {isZoneScoped && (
+                  <span className="text-[10px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                    نطاق: {selectedZone} ({zoneBusinesses?.length || 0})
+                  </span>
+                )}
+              </div>
+
+              {isZoneScoped && (
+                <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-2 text-[11px] text-amber-900 flex items-center justify-between">
+                  <span>📍 الأنشطة المتوفرة فعلياً في {selectedZone} فقط</span>
+                  {categoryFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onCategoryChange('all');
+                        onSubcategoryChange('all');
+                      }}
+                      className="text-amber-800 font-bold underline text-[10.5px] cursor-pointer"
+                    >
+                      عرض كل أنشطة {selectedZone}
+                    </button>
+                  )}
+                </div>
+              )}
 
               <select
                 value={categoryFilter}
-                onChange={(e) => onCategoryChange(e.target.value)}
+                onChange={(e) => {
+                  onCategoryChange(e.target.value);
+                  onSubcategoryChange('all');
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
-                <option value="all">كافة الفئات والأنشطة</option>
-                {CATEGORY_GROUPS.map((group) => (
-                  <optgroup key={group.group} label={group.group}>
-                    <option value={group.group}>كل {group.group}</option>
-                    {group.items.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </optgroup>
+                <option value="all">
+                  {isZoneScoped ? `كافة أنشطة ${selectedZone} (${zoneBusinesses?.length || 0} مكان)` : 'كافة الفئات والأنشطة'}
+                </option>
+                {CATEGORY_TAXONOMY.filter((group) => !isZoneScoped || (categoryCounts.groups.get(group.id) || 0) > 0).map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.icon} {group.label} ({categoryCounts.groups.get(group.id) || 0})
+                  </option>
                 ))}
               </select>
+
+              {selectedCategoryGroup && (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-[11px] font-bold text-slate-500 block">النوع الفرعي:</label>
+                  <select
+                    value={subcategoryFilter}
+                    onChange={(e) => onSubcategoryChange(e.target.value)}
+                    className="w-full bg-white border border-amber-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  >
+                    <option value="all">كل {selectedCategoryGroup.label} ({categoryCounts.groups.get(selectedCategoryGroup.id) || 0})</option>
+                    {selectedCategoryGroup.children
+                      .filter((child) => !isZoneScoped || (categoryCounts.children.get(child.id) || 0) > 0)
+                      .map((child) => (
+                        <option key={child.id} value={child.id}>
+                          {child.label} ({categoryCounts.children.get(child.id) || 0})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* 3. Friendly Quick Checks (خيارات ومميزات إضافية) */}

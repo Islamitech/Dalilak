@@ -58,3 +58,29 @@ export const MAP_QUICK_CATEGORIES = [
   { id: 'تعليم', name: 'مدارس وحضانات', icon: '📚' },
   { id: 'سيارات', name: 'خدمات سيارات', icon: '🚗' },
 ];
+
+export interface EgyptLocationItem {
+  id: string;
+  name: string;
+  gov: string;
+  lat: number;
+  lng: number;
+  isMain?: boolean;
+}
+
+export const EGYPT_POPULAR_LOCATIONS: EgyptLocationItem[] = [
+  { id: 'hadayek-alahram', name: 'حدائق الأهرام', gov: 'الجيزة', lat: 29.9683, lng: 31.1002, isMain: true },
+  { id: 'october-6', name: 'مدينة 6 أكتوبر', gov: 'الجيزة', lat: 29.9722, lng: 30.9458 },
+  { id: 'sheikh-zayed', name: 'الشيخ زايد', gov: 'الجيزة', lat: 30.0469, lng: 30.9858 },
+  { id: 'hadayek-october', name: 'حدائق أكتوبر', gov: 'الجيزة', lat: 29.9192, lng: 31.0664 },
+  { id: 'dokki-mohandessin', name: 'المهندسين والدقي', gov: 'الجيزة', lat: 30.0488, lng: 31.2052 },
+  { id: 'tagamoa-5', name: 'التجمع الخامس (القاهرة الجديدة)', gov: 'القاهرة', lat: 30.0055, lng: 31.4289 },
+  { id: 'maadi', name: 'المعادي', gov: 'القاهرة', lat: 29.9599, lng: 31.2625 },
+  { id: 'nasr-city', name: 'مدينة نصر', gov: 'القاهرة', lat: 30.0561, lng: 31.3418 },
+  { id: 'heliopolis', name: 'مصر الجديدة', gov: 'القاهرة', lat: 30.0911, lng: 31.3235 },
+  { id: 'downtown-cairo', name: 'وسط البلد', gov: 'القاهرة', lat: 30.0444, lng: 31.2357 },
+  { id: 'alexandria', name: 'الإسكندرية', gov: 'الإسكندرية', lat: 31.2001, lng: 29.9187 },
+  { id: 'mansoura', name: 'المنصورة', gov: 'الدقهلية', lat: 31.0409, lng: 31.3785 },
+  { id: 'tanta', name: 'طنطا', gov: 'الغربية', lat: 30.7865, lng: 31.0004 },
+];
+

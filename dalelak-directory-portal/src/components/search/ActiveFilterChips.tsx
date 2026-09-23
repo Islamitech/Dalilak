@@ -3,7 +3,11 @@ import { X, RotateCcw } from 'lucide-react';
 
 export interface ActiveFilterChipsProps {
   categoryFilter: string;
+  categoryLabel?: string;
+  subcategoryFilter?: string;
+  subcategoryLabel?: string;
   onClearCategory: () => void;
+  onClearSubcategory?: () => void;
   selectedGov: string;
   onClearGov: () => void;
   selectedCity: string;
@@ -21,7 +25,11 @@ export interface ActiveFilterChipsProps {
 
 export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
   categoryFilter,
+  categoryLabel,
+  subcategoryFilter = 'all',
+  subcategoryLabel,
   onClearCategory,
+  onClearSubcategory,
   selectedGov,
   onClearGov,
   selectedCity,
@@ -44,7 +52,7 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
 
       {categoryFilter !== 'all' && (
         <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-1 rounded-lg text-xs font-bold animate-fade-in">
-          <span>التصنيف: {categoryFilter}</span>
+          <span>التصنيف: {categoryLabel || categoryFilter}</span>
           <button
             type="button"
             onClick={onClearCategory}
@@ -53,6 +61,17 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
           >
             <X className="w-2.5 h-2.5" />
           </button>
+        </span>
+      )}
+
+      {subcategoryFilter !== 'all' && (
+        <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-900 border border-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-fade-in">
+          <span>النوع: {subcategoryLabel || subcategoryFilter}</span>
+          {onClearSubcategory && (
+            <button type="button" onClick={onClearSubcategory} className="w-4 h-4 rounded-full hover:bg-slate-200 flex items-center justify-center" title="إلغاء النوع الفرعي">
+              <X className="w-2.5 h-2.5" />
+            </button>
+          )}
         </span>
       )}
 

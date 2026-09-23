@@ -11,6 +11,12 @@ export interface Business {
   isFeatured?: boolean;
   partnerStatus?: string;
   category: string;
+  /** Stable taxonomy identifiers. Optional while legacy records are classified at runtime. */
+  mainCategoryId?: string;
+  subcategoryId?: string;
+  services?: string[];
+  categoryClassificationConfidence?: number;
+  categoryNeedsReview?: boolean;
   governorate: string;
   city: string;
   street: string;
@@ -57,6 +63,8 @@ export interface Business {
   repCommissionRate?: number;
   isFeeExempt?: boolean; // مكان رائج بالمنطقة معفى من الرسوم والتحصيل المالي (إدراج مجاني)
   feeExemptionReason?: string; // سبب الإعفاء
+  rating?: number;
+  videoUrl?: string;
   isDeleted?: boolean;
   deletedAt?: string;
   viewsCount?: number;
