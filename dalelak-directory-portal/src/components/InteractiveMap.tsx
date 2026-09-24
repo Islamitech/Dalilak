@@ -51,6 +51,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   onClearBuilding,
   onOpenRadar,
 }) => {
+  const [mapSearchMode, setMapSearchMode] = useState<'browse' | 'building'>(targetBuilding ? 'building' : 'browse');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const state = useMapState({ initialShowBusinesses, defaultExpanded, initialSelectedZone: selectedZone });
 
@@ -149,6 +150,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     selectedZone: activeZone,
     categoryFilter: activeCategory,
     targetBuilding: effectiveTargetBuilding,
+    buildingSearchActive: mapSearchMode === 'building',
     onSelectBusiness: (biz) => {
       setSelectedBuildingState(null);
       state.setSelectedBiz(biz);
@@ -227,6 +229,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         {/* 🧭 Clean District & Activity Filter Bar (Shows only within Hadayek Al-Ahram area) */}
         {mode === 'view' && (Math.abs(lat - 29.9683) < 0.06 && Math.abs(lng - 31.1002) < 0.06) && (
           <MapModernTopBar
+            searchMode={mapSearchMode}
+            onSearchModeChange={(next) => { setMapSearchMode(next); setSelectedBuildingState(null); onClearBuilding?.(); }}
+            buildingNumber={effectiveTargetBuilding?.buildingNumber}
             selectedZone={activeZone}
             onSelectZone={(z) => {
               state.setSelectedZone(z);
@@ -243,24 +248,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             }}
             quickCategories={quickCategories}
             filteredBusinessesCount={filteredBusinessesCount}
-          />
-        )}
-
-        {/* ⚠️ Empty Category Notice Banner (Non-intrusive lightweight pill) */}
-        {mode === 'view' && activeCategory && activeCategory !== 'all' && matchingBusinessesCount === 0 && (
-          <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[850] pointer-events-none transition-all duration-300">
-            <div className="bg-slate-900/90 backdrop-blur-md text-amber-300 border border-amber-500/40 rounded-full px-4 py-1.5 text-xs font-bold shadow-xl flex items-center gap-2 select-none">
-              <span className="text-sm">🔍</span>
-              <span>لا توجد أنشطة مسجلة في تصنيف &quot;{activeCategory}&quot; {activeZone && activeZone !== 'all' ? `بمنطقة ${activeZone}` : 'حالياً'}</span>
-            </div>
-          </div>
-        )}
-
-        {/* 🔍 In-Zone Scoped Search Bar (Displays when a zone is active) */}
-        {mode === 'view' && activeZone && activeZone !== 'all' && !navigationTargetState && (
-          <div className="absolute top-16 sm:top-20 right-3 left-3 sm:right-6 sm:left-6 z-[890] pointer-events-none flex justify-center">
-            <div className="pointer-events-auto w-full max-w-md">
+          >
               <ZoneScopedSearchBar
+                key={activeZone}
                 selectedZone={activeZone}
                 businesses={businesses}
                 selectedBuilding={selectedBuildingState}
@@ -285,6 +275,15 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
                   if (onSelectZone) onSelectZone('');
                 }}
               />
+          </MapModernTopBar>
+        )}
+
+        {/* ⚠️ Empty Category Notice Banner (Non-intrusive lightweight pill) */}
+        {mode === 'view' && activeCategory && activeCategory !== 'all' && matchingBusinessesCount === 0 && (
+          <div className="absolute bottom-5 left-3 right-16 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[850] pointer-events-none transition-all duration-300">
+            <div className="bg-slate-900/90 backdrop-blur-md text-amber-300 border border-amber-500/40 rounded-full px-4 py-1.5 text-xs font-bold shadow-xl flex items-center gap-2 select-none">
+              <span className="text-sm">🔍</span>
+              <span>لا توجد أنشطة مسجلة في تصنيف &quot;{activeCategory}&quot; {activeZone && activeZone !== 'all' ? `بمنطقة ${activeZone}` : 'حالياً'}</span>
             </div>
           </div>
         )}
@@ -369,4 +368,3 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     </div>
   );
 };
-

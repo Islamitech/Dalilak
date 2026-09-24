@@ -37,7 +37,9 @@ export function planCameraTransitionOnZoneChange(
   // Zone selected
   if (normNext !== '') {
     const targetDistrict = districts?.find((d) => d.letterAr === normNext);
-    const bounds = targetDistrict?.polygons?.[0];
+    // Frame every ring belonging to the district. Using only the first ring
+    // makes multi-part areas look visually shifted after selection.
+    const bounds = targetDistrict?.polygons?.flat();
 
     return {
       shouldMove: true,

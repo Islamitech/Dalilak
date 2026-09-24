@@ -1,105 +1,57 @@
-import React from 'react';
-import { MapPin, ChevronDown, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { HADAYEK_OFFICIAL_DISTRICTS } from '../../data/hadayekDistrictsGeoData';
 import { MAP_QUICK_CATEGORIES } from './constants/mapConstants';
-
 export interface MapModernTopBarProps {
-  selectedZone?: string;
-  onSelectZone?: (zone: string) => void;
-  categoryFilter?: string;
-  onCategoryChange?: (category: string) => void;
-  quickCategories?: Array<{ id: string; name: string; icon: string; count?: number }>;
-  filteredBusinessesCount?: number;
+ selectedZone?: string;
+ onSelectZone?: (zone: string) => void;
+ categoryFilter?: string;
+ onCategoryChange?: (category: string) => void;
+ quickCategories?: Array<{ id: string; name: string; icon: string; count?: number }>;
+ filteredBusinessesCount?: number;
+ searchMode: 'browse' | 'building';
+ onSearchModeChange: (mode: 'browse' | 'building') => void;
+ children?: React.ReactNode;
+ buildingNumber?: string;
 }
-
 export const MapModernTopBar: React.FC<MapModernTopBarProps> = ({
-  selectedZone = '',
-  onSelectZone,
-  categoryFilter = 'all',
-  onCategoryChange,
-  quickCategories,
-  filteredBusinessesCount,
+ selectedZone = '', onSelectZone, categoryFilter = 'all', onCategoryChange,
+ quickCategories, searchMode, onSearchModeChange, children, buildingNumber,
 }) => {
-  const categories = quickCategories && quickCategories.length > 0 ? quickCategories : MAP_QUICK_CATEGORIES;
-
-  return (
-    <div
-      className="absolute top-2.5 sm:top-4 right-2.5 left-2.5 sm:right-5 sm:left-5 z-[900] pointer-events-none select-none font-['Cairo',sans-serif]"
-      dir="rtl"
-    >
-      <div className="pointer-events-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 max-w-7xl mx-auto w-full">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {/* District Selector Pill */}
-          <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md hover:shadow-lg rounded-2xl p-1 sm:p-1.5 flex items-center gap-1 sm:gap-1.5 shrink-0 transition-all">
-            <div className="relative inline-flex items-center">
-              <select
-                value={selectedZone || ''}
-                onChange={(e) => onSelectZone && onSelectZone(e.target.value)}
-                className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl pr-2 pl-6 py-1 cursor-pointer outline-none transition-colors"
-                style={{ colorScheme: 'light' }}
-                title="تحديد المنطقة"
-              >
-                <option value="">🧭 كل المناطق (أ - ع)</option>
-                {HADAYEK_OFFICIAL_DISTRICTS.map((d) => (
-                  <option key={d.id} value={d.letterAr}>
-                    {d.nameAr}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute left-1.5 pointer-events-none" />
-            </div>
-
-            {selectedZone && (
-              <button
-                type="button"
-                onClick={() => onSelectZone && onSelectZone('')}
-                className="w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
-                title="إلغاء تحديد المنطقة وعرض كل المناطق"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-
-          {/* Activity Category Selector Pill */}
-          <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md hover:shadow-lg rounded-2xl p-1 sm:p-1.5 flex items-center gap-1 sm:gap-1.5 shrink-0 transition-all">
-            <div className="relative inline-flex items-center">
-              <select
-                value={categoryFilter || 'all'}
-                onChange={(e) => onCategoryChange && onCategoryChange(e.target.value)}
-                className={`border font-bold text-xs rounded-xl pr-2 pl-6 py-1 cursor-pointer outline-none transition-colors ${
-                  categoryFilter && categoryFilter !== 'all'
-                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-950 font-black'
-                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                }`}
-                style={{ colorScheme: 'light' }}
-                title="اختر نوع النشاط لعرضه على الخريطة"
-              >
-                <option value="all">🌟 اختر نوع النشاط لإظهاره</option>
-                {categories
-                  .filter((c) => c.id !== 'all')
-                  .map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
-                    </option>
-                  ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute left-1.5 pointer-events-none" />
-            </div>
-
-            {categoryFilter && categoryFilter !== 'all' && (
-              <button
-                type="button"
-                onClick={() => onCategoryChange && onCategoryChange('all')}
-                className="w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
-                title="إلغاء الفلتر وإخفاء الأنشطة"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+ const [expanded, setExpanded] = useState(Boolean(selectedZone || categoryFilter !== 'all'));
+ const regionRef = useRef<HTMLSelectElement>(null);
+ useEffect(() => { if (selectedZone || categoryFilter !== 'all') setExpanded(true); }, [selectedZone, categoryFilter]);
+ const categories = quickCategories?.length ? quickCategories : MAP_QUICK_CATEGORIES;
+ const open = () => {
+   flushSync(() => setExpanded(true));
+   regionRef.current?.focus();
+   try { regionRef.current?.showPicker?.(); } catch { /* Keep the focused select available in browsers without showPicker. */ }
+ };
+ return (
+ <div dir="rtl" className="absolute top-3 inset-x-3 sm:inset-x-5 z-[900] pointer-events-none">
+  <div className="relative max-w-2xl mx-auto pointer-events-auto">
+   <div className="flex items-center gap-1 min-h-12 px-1.5 bg-white/95 border border-slate-200 rounded-full shadow-sm">
+    <button type="button" aria-label={expanded ? 'إغلاق أدوات البحث' : 'فتح البحث والفلاتر'} onClick={() => expanded ? setExpanded(false) : open()} className="shrink-0 w-9 h-11 flex items-center justify-center text-amber-600"><SlidersHorizontal size={20} /></button>
+    {expanded ? <>
+     <select ref={regionRef} aria-label="اختر المنطقة" value={selectedZone === 'all' ? '' : selectedZone}
+      onChange={e => onSelectZone?.(e.target.value)}
+      className="min-w-0 w-[27%] max-w-32 shrink-0 h-10 rounded-xl border border-slate-200 bg-white px-1 text-xs text-slate-800">
+      <option value="">المنطقة</option>
+      {HADAYEK_OFFICIAL_DISTRICTS.map(d => <option key={d.id} value={d.letterAr}>منطقة {d.letterAr}</option>)}
+     </select>
+     <select aria-label="نوع البحث" value={searchMode === 'building' ? 'building' : categoryFilter}
+      onChange={e => { const building = e.target.value === 'building'; onSearchModeChange(building ? 'building' : 'browse'); onCategoryChange?.(building ? 'all' : e.target.value); }}
+      className="min-w-0 w-[23%] max-w-36 shrink-0 h-10 rounded-xl border border-slate-200 bg-white px-1 text-xs text-slate-800">
+      <option value="all">نوع البحث</option>
+      <option value="building" disabled={!selectedZone || selectedZone === 'all'}>مبنى</option>
+      {categories.filter(c => c.id !== 'all').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+     </select>
+     <div className="min-w-0 flex-1">{searchMode === 'building' && selectedZone ? children : <span className="block truncate px-1 text-xs text-slate-500">{categoryFilter !== 'all' ? 'أنشطة المنطقة' : 'اختر ما تبحث عنه'}</span>}</div>
+     <button type="button" aria-label="مسح البحث والفلاتر" onClick={() => { onSelectZone?.(''); onCategoryChange?.('all'); onSearchModeChange('browse'); setExpanded(false); }} className="w-7 h-11 shrink-0 flex items-center justify-center text-slate-500"><X size={16} /></button>
+    </> : <button type="button" onClick={open} className="flex-1 min-w-0 flex justify-between items-center gap-2 h-11 px-2 text-sm text-slate-600"><span className="truncate">ابحث في حدائق الأهرام…</span><Search size={19} className="shrink-0" /></button>}
+   </div>
+   {buildingNumber && <div aria-label="موقع المبنى" className="mt-2 w-fit rounded-full bg-white/95 border border-slate-200 px-3 py-1.5 text-xs text-slate-700 shadow-sm">منطقة {selectedZone} ← مبنى {buildingNumber}</div>}
+  </div>
+ </div>);
 };

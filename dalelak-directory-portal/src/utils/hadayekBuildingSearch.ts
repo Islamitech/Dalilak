@@ -45,6 +45,10 @@ async function getBuildingKeys(): Promise<string[]> {
 /**
  * Perform high-performance scoped search within a specific Hadayek Al-Ahram zone
  */
+export function normalizeBuildingQuery(query: string): string {
+  return query.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x6f0)).trim().toLowerCase();
+}
+
 export async function searchInsideHadayekZone(
   zoneLetter: string,
   query: string,
@@ -53,7 +57,7 @@ export async function searchInsideHadayekZone(
 ): Promise<ZoneScopedSearchResult[]> {
   if (!zoneLetter || !query || query.trim().length === 0) return [];
 
-  const cleanQuery = query.trim().toLowerCase();
+  const cleanQuery = normalizeBuildingQuery(query);
   const results: ZoneScopedSearchResult[] = [];
   const zone = getHadayekZone(zoneLetter);
   const zoneName = zone ? zone.nameAr : `منطقة ${zoneLetter}`;

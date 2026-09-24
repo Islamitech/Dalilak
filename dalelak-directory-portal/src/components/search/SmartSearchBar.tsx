@@ -43,7 +43,8 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
     try {
       const saved = localStorage.getItem('dalelak_recent_searches');
       if (saved) {
-        setRecentSearches(JSON.parse(saved));
+        const parsed: unknown = JSON.parse(saved);
+        if (Array.isArray(parsed)) setRecentSearches(parsed.filter((v): v is string => typeof v === 'string').slice(0, 5));
       }
     } catch {}
   }, []);
@@ -74,17 +75,17 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
       .slice(0, 5);
   }, [searchQuery, businesses]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = (e?: React.FormEvent, term = searchQuery) => {
     if (e) e.preventDefault();
-    if (searchQuery.trim()) {
-      addRecentSearch(searchQuery.trim());
+    if (term.trim()) {
+      addRecentSearch(term.trim());
     }
     setIsFocused(false);
     if (onSearchSubmit) onSearchSubmit();
   };
 
   return (
-    <div className={`relative w-full ${compact ? 'max-w-3xl' : 'max-w-4xl'} mx-auto`} ref={containerRef}>
+    <div className={`relative w-full ${compact ? 'max-w-3xl' : 'max-w-4xl'} mx-auto`} ref={containerRef} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsFocused(false); }}>
       <form
         onSubmit={handleSubmit}
         className="bg-[var(--bg-card)] border-2 border-amber-500/30 hover:border-amber-500/60 focus-within:border-amber-500 rounded-2xl p-1.5 sm:p-2 shadow-lg shadow-amber-500/5 backdrop-blur-md transition-all flex flex-col md:flex-row items-stretch md:items-center gap-1.5"
@@ -94,19 +95,21 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
           <div className="relative flex-1 flex items-center min-w-0">
             <Search className="w-4 h-4 text-amber-500 absolute right-3 pointer-events-none shrink-0" />
             <input
-              type="text"
+              type="search"
+              enterKeyHint="search"
+              aria-label="ابحث عن نشاط أو خدمة"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               onFocus={() => setIsFocused(true)}
-              onBlur={() => setTimeout(() => setIsFocused(false), 250)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setIsFocused(false); }}
               placeholder="ابحث عن مطعم، طبيب، صيدلية، خدمة..."
-              className="w-full bg-transparent pr-9 pl-8 py-2 text-xs sm:text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+              className="directory-search-input w-full min-h-11 bg-transparent pr-9 pl-11 py-2 text-base sm:text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => onSearchChange('')}
-                className="absolute left-2.5 w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
+                className="absolute left-0 w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
                 title="مسح"
                 aria-label="مسح البحث"
               >
@@ -118,7 +121,7 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
           {/* Submit Button on Mobile (visible only on small screens for ultra-quick tap) */}
           <button
             type="submit"
-            className="md:hidden bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
+            className="md:hidden min-h-11 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
             aria-label="بحث"
           >
             <Search className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -129,7 +132,7 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
         <div className="hidden md:block w-px h-7 bg-slate-200 shrink-0" />
 
         {/* Field 2: Where? (المحافظة / النطاق الجغرافي) */}
-        <div className="flex items-center gap-1.5 bg-slate-50 md:bg-transparent rounded-xl px-2.5 py-1 md:py-0 md:px-1 border border-slate-200/70 md:border-none min-w-0 md:min-w-[220px]">
+        <div className="min-h-11 flex items-center gap-1.5 bg-slate-50 md:bg-transparent rounded-xl px-2.5 py-1 md:py-0 md:px-1 border border-slate-200/70 md:border-none min-w-0 md:min-w-[220px]">
           <MapPin className="w-3.5 h-3.5 text-amber-600 md:text-slate-400 shrink-0" />
           <select
             value={selectedCity && selectedCity !== 'all' ? selectedCity : selectedGov}
@@ -154,7 +157,7 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                 onCityChange('all');
               }
             }}
-            className="flex-1 bg-transparent py-1 text-xs font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer truncate"
+            className="flex-1 min-w-0 min-h-11 bg-transparent py-1 text-base sm:text-xs font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer truncate"
             aria-label="اختر النطاق الجغرافي"
             style={{ colorScheme: 'light' }}
           >
@@ -179,7 +182,7 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
             type="button"
             onClick={onRequestLocation}
             disabled={isLocatingUser}
-            className={`px-2 py-1 rounded-lg text-[10.5px] font-black flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+            className={`min-h-11 px-2.5 py-1 rounded-lg text-[10.5px] font-black flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
               userCoords
                 ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'
                 : 'bg-white hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200'
@@ -205,7 +208,7 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
       {/* Autocomplete & Suggestions Dropdown */}
       {isFocused && (
         <div className="absolute top-full right-0 left-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl z-50 overflow-hidden text-xs animate-fade-in">
-          <div className="p-3 space-y-3 max-h-72 overflow-y-auto text-right">
+          <div className="p-3 space-y-3 max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain text-right">
             {/* Matching Businesses */}
             {suggestions.length > 0 && (
               <div className="space-y-1">
@@ -216,11 +219,12 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                   <button
                     key={biz.id}
                     type="button"
-                    onMouseDown={() => {
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
                       if (onSelectBusiness) onSelectBusiness(biz);
                       else {
                         onSearchChange(biz.nameAr);
-                        handleSubmit();
+                        handleSubmit(undefined, biz.nameAr);
                       }
                     }}
                     className="w-full text-right p-2 rounded-xl hover:bg-slate-100 flex items-center justify-between gap-2 transition-colors cursor-pointer"
@@ -247,7 +251,8 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                   </span>
                   <button
                     type="button"
-                    onMouseDown={handleClearRecent}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleClearRecent}
                     className="text-[10px] text-rose-500 hover:text-rose-600 font-bold cursor-pointer"
                   >
                     مسح السجل
@@ -258,9 +263,9 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                     <button
                       key={i}
                       type="button"
-                      onMouseDown={() => {
+                      onClick={() => {
                         onSearchChange(term);
-                        handleSubmit();
+                        handleSubmit(undefined, term);
                       }}
                       className="px-3 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 text-[11px] font-bold cursor-pointer transition-colors"
                     >
@@ -284,9 +289,9 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                       <button
                         key={i}
                         type="button"
-                        onMouseDown={() => {
+                        onClick={() => {
                           onSearchChange(term);
-                          handleSubmit();
+                          handleSubmit(undefined, term);
                         }}
                         className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 text-[11px] font-bold cursor-pointer transition-colors"
                       >

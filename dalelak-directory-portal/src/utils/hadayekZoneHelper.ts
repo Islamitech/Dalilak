@@ -5,6 +5,43 @@ import { CATEGORY_GROUPS } from '../data/mockData';
 import { matchesCategoryFilter } from './categoryMatcher';
 import { normalizeArabicText } from './arabicSearch';
 
+const ZONE_CACHE_LIMIT = 5000;
+const businessZoneCache = new Map<string, string | null>();
+
+function hasUsableCoordinates(biz: Business): boolean {
+  return (
+    typeof biz.lat === 'number' &&
+    typeof biz.lng === 'number' &&
+    Number.isFinite(biz.lat) &&
+    Number.isFinite(biz.lng) &&
+    biz.lat !== 0 &&
+    biz.lng !== 0 &&
+    Math.abs(biz.lat) <= 90 &&
+    Math.abs(biz.lng) <= 180
+  );
+}
+
+function getZoneCacheKey(biz: Business): string {
+  return [
+    biz.id || '',
+    biz.lat,
+    biz.lng,
+    (biz as any).zone || (biz as any).hadayekZone || '',
+    biz.city || '',
+    biz.street || '',
+    biz.landmark || '',
+  ].join('|');
+}
+
+function rememberBusinessZone(key: string, zone: string | null): string | null {
+  if (businessZoneCache.size >= ZONE_CACHE_LIMIT) {
+    const oldestKey = businessZoneCache.keys().next().value;
+    if (oldestKey !== undefined) businessZoneCache.delete(oldestKey);
+  }
+  businessZoneCache.set(key, zone);
+  return zone;
+}
+
 /**
  * Standardize zone string to extract letter or clean label.
  * e.g., 'منطقة أ' -> 'أ', 'منطقة ل' -> 'ل', 'أ' -> 'أ'
@@ -48,20 +85,16 @@ export function matchArabicWordPattern(text: string, pattern: string): boolean {
 export function getBusinessHadayekZoneLetter(biz: Business): string | null {
   if (!biz) return null;
 
+  const cacheKey = getZoneCacheKey(biz);
+  if (businessZoneCache.has(cacheKey)) {
+    return businessZoneCache.get(cacheKey) ?? null;
+  }
+
   const textCorpus = `${biz.street || ''} ${biz.landmark || ''} ${biz.city || ''} ${biz.description || ''} ${biz.nameAr || ''}`;
   const normCorpus = normalizeArabicText(textCorpus);
 
   // 1. 🌐 Spatial GIS Polygon point-in-polygon coordinates check FIRST
-  if (
-    typeof biz.lat === 'number' &&
-    typeof biz.lng === 'number' &&
-    !isNaN(biz.lat) &&
-    !isNaN(biz.lng) &&
-    biz.lat > 29.93 &&
-    biz.lat < 30.01 &&
-    biz.lng > 31.06 &&
-    biz.lng < 31.13
-  ) {
+  if (hasUsableCoordinates(biz)) {
     const district = findDistrictForCoordinates(biz.lat, biz.lng);
     if (district && district.letterAr) {
       // Check for textual conflict to log warning
@@ -81,15 +114,19 @@ export function getBusinessHadayekZoneLetter(biz: Business): string | null {
         }
       }
 
-      return district.letterAr;
+      return rememberBusinessZone(cacheKey, district.letterAr);
     }
+
+    // Valid GPS is authoritative. Never leak a pin into a textual district
+    // when its coordinate is outside every official polygon.
+    return rememberBusinessZone(cacheKey, null);
   }
 
   // 2. Structured field check
   const structuredZone = (biz as any).zone || (biz as any).hadayekZone;
   if (structuredZone && typeof structuredZone === 'string') {
     const letter = extractZoneLetter(structuredZone);
-    if (letter) return letter;
+    if (letter) return rememberBusinessZone(cacheKey, letter);
   }
 
   // 3. Comprehensive text search fallback (only for missing or unresolved coordinates)
@@ -103,11 +140,11 @@ export function getBusinessHadayekZoneLetter(biz: Business): string | null {
       matchArabicWordPattern(normCorpus, `\\d+\\s*${normLetter}`);
 
     if (isMatched) {
-      return district.letterAr;
+      return rememberBusinessZone(cacheKey, district.letterAr);
     }
   }
 
-  return null;
+  return rememberBusinessZone(cacheKey, null);
 }
 
 /**
@@ -127,22 +164,9 @@ export function isBusinessInHadayekZone(biz: Business, zoneFilter: string): bool
 
   // If 'all' is requested, verify the business actually belongs to Hadayek Al-Ahram
   if (!zoneFilter || zoneFilter === 'all') {
-    // Spatial verification: Coordinates within official Hadayek district polygons
-    if (
-      typeof biz.lat === 'number' &&
-      typeof biz.lng === 'number' &&
-      !isNaN(biz.lat) &&
-      !isNaN(biz.lng)
-    ) {
-      const spatialDistrict = findDistrictForCoordinates(biz.lat, biz.lng);
-      if (spatialDistrict) return true;
-
-      // Tight bounding check with text confirmation
-      if (biz.lat >= 29.938 && biz.lat <= 30.005 && biz.lng >= 31.065 && biz.lng <= 31.130) {
-        if (!normCorpus.includes('الدقي') && !normCorpus.includes('المهندسين') && !normCorpus.includes('مدينة نصر')) {
-          return true;
-        }
-      }
+    // Exact coordinates must fall inside an official district polygon.
+    if (hasUsableCoordinates(biz)) {
+      return getBusinessHadayekZoneLetter(biz) !== null;
     }
 
     // Textual verification fallback
@@ -168,6 +192,14 @@ export function isBusinessInHadayekZone(biz: Business, zoneFilter: string): bool
   );
 
   if (gateMatch) {
+    if (hasUsableCoordinates(biz)) {
+      const bizZoneLetter = getBusinessHadayekZoneLetter(biz);
+      return Boolean(
+        bizZoneLetter &&
+        gateMatch.servedZones.some((z) => normalizeZoneLetter(z) === normalizeZoneLetter(bizZoneLetter))
+      );
+    }
+
     if (
       normCorpus.includes(normalizeArabicText(gateMatch.popularNameAr)) ||
       normCorpus.includes(normalizeArabicText(gateMatch.shortNameAr)) ||
@@ -200,7 +232,7 @@ export function isBusinessInHadayekZone(biz: Business, zoneFilter: string): bool
   }
 
   // If business has valid coordinates but is not inside this district polygon, do NOT fall back to text
-  if (typeof biz.lat === 'number' && typeof biz.lng === 'number' && !isNaN(biz.lat) && !isNaN(biz.lng) && biz.lat !== 0) {
+  if (hasUsableCoordinates(biz)) {
     return false;
   }
 

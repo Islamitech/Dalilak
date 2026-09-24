@@ -1,3 +1,6 @@
+import { normalizeBuildingQuery } from '../utils/hadayekBuildingSearch';
+import { getDistrictLabelPosition } from '../components/map/utils/districtLabelPosition';
+import { HADAYEK_OFFICIAL_DISTRICTS as labelDistricts, isPointInPolygon as labelInside } from '../data/hadayekDistrictsGeoData';
 import assert from 'node:assert/strict';
 import {
   isBusinessInHadayekZone,
@@ -76,6 +79,19 @@ function createMockBusiness(
     ...partial,
   };
 }
+
+test('Every district label stays inside its own polygon and is stable across calls', () => {
+  for (const district of labelDistricts) {
+    const point = getDistrictLabelPosition(district);
+    assert.ok(district.polygons.some(ring => labelInside(point[0], point[1], ring)), district.letterAr);
+    assert.deepEqual(getDistrictLabelPosition(district), point);
+  }
+});
+
+test('Building search accepts Arabic and Persian phone keyboard digits', () => {
+  assert.equal(normalizeBuildingQuery(' ٨٨ '), '88');
+  assert.equal(normalizeBuildingQuery('عمارة ۱۲۳'), 'عمارة 123');
+});
 
 console.log('\n========================================');
 console.log('🧪 RUNNING MAP FIXES & COMPLIANCE TESTS');
@@ -234,6 +250,21 @@ test('Correctly rejects non-Hadayek locations from Hadayek scope', () => {
     isBusinessInHadayekZone(nasrCityBiz, 'all'),
     false,
     'Nasr City must not be in Hadayek scope'
+  );
+
+  const nearbyButOutsideOfficialPolygons = createMockBusiness({
+    id: '7_nearby_false_positive',
+    nameAr: 'نشاط قريب خارج الحدود',
+    category: 'خدمات',
+    city: 'حدائق الأهرام',
+    street: 'منطقة أ',
+    lat: 29.995,
+    lng: 31.120,
+  });
+  assert.equal(
+    isBusinessInHadayekZone(nearbyButOutsideOfficialPolygons, 'all'),
+    false,
+    'Valid GPS outside every official polygon must not pass via broad text or rectangle matching'
   );
 });
 
@@ -591,6 +622,21 @@ test('Zone change triggers exactly ONE camera transition per selection', () => {
   assert.equal(clearDecision.type, 'overview');
   assert.deepEqual(clearDecision.targetCenter, [29.9683, 31.1002]);
   assert.equal(clearDecision.targetZoom, 14);
+
+  const multipartDecision = planCameraTransitionOnZoneChange('', 'س', [
+    {
+      letterAr: 'س',
+      polygons: [
+        [[29.95, 31.09], [29.96, 31.10]],
+        [[29.97, 31.11], [29.98, 31.12]],
+      ],
+    },
+  ]);
+  assert.deepEqual(
+    multipartDecision.targetBounds,
+    [[29.95, 31.09], [29.96, 31.10], [29.97, 31.11], [29.98, 31.12]],
+    'Camera framing must include every polygon ring in a multipart district'
+  );
 });
 
 test('Marker Registry reconciliation retains identical marker instances across non-affecting renders', () => {
